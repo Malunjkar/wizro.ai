@@ -30,7 +30,7 @@ Before starting, make sure you have installed:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/nazneen-kosqu/wizro.ai
+git clone https://github.com/Nazneenp/wizro.ai.git
 cd wizro.ai
 ```
 
