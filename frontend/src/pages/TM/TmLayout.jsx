@@ -1,66 +1,63 @@
-import { Plus, Search } from 'lucide-react';
-import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
-
-import { Input } from '@/components/ui/input';
+import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 const TmLayout = () => {
-  const { getTmNavigationItems } = useAuth();
+  const { getTmNavigationItems, logout, user } = useAuth();
+
+  const nameParts = user?.fullName?.split(' ') || [];
+  const initials = nameParts.map((n) => n[0]).join('');
 
   return (
     <div className="h-screen flex flex-col bg-[var(--color-background)] overflow-hidden">
       {/* Navigation Bar */}
-      <nav className="border-b border-[var(--color-border)] px-6 py-3 bg-[var(--color-muted)]">
+      <nav className="border-b border-[var(--color-border)] bg-[var(--color-muted)] px-6 py-3 shadow-sm">
         <div className="flex items-center justify-between">
-          {/* Left side: logo + navigation */}
-          <div className="flex items-center space-x-8">
-            <Link to="/main" className="text-xl font-semibold text-[var(--color-chart-2)]">
+          {/* Left: Logo + Navigation */}
+          <div className="flex items-center space-x-10">
+            <Link
+              to="/main"
+              className="text-xl font-semibold text-[var(--color-chart-2)] tracking-wide hover:opacity-90 transition"
+            >
               KosquTrack
             </Link>
+
             <div className="flex items-center space-x-6 text-sm">
               {getTmNavigationItems().map((link) => (
-                <Link
+                <NavLink
                   key={link.id}
                   to={link.href}
-                  className={`${
-                    link.active
-                      ? 'text-[var(--color-chart-2)] font-semibold'
-                      : 'text-[var(--color-foreground)] hover:text-[var(--color-chart-4)]'
-                  } cursor-pointer`}
+                  className={({ isActive }) =>
+                    `transition font-medium ${
+                      isActive
+                        ? 'text-[var(--color-chart-2)]'
+                        : 'text-[var(--color-foreground)] hover:text-[var(--color-chart-4)]'
+                    }`
+                  }
                 >
                   {link.name}
-                </Link>
+                </NavLink>
               ))}
             </div>
           </div>
 
-          {/* Right side: search, clock, create button, user */}
+          {/* Right: Logout + Avatar */}
           <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-muted-foreground)] w-4 h-4" />
-              <Input
-                placeholder="Tasks, projects, comments..."
-                className="pl-10 w-80 bg-[var(--color-background)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-chart-2)] focus:ring-1 focus:ring-[var(--color-chart-2)]"
-              />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-[var(--color-muted-foreground)]">
-                Ctrl+K
-              </span>
-            </div>
-
-            {/* Create Task */}
-            <Link
-              to="/tm/create"
-              className="flex items-center gap-2 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+            {/* Logout */}
+            <button
+            
+              onClick={logout}
+              className="px-4 py-2 rounded-lg bg-[var(--color-chart-2)] text-white text-sm font-medium 
+                         hover:bg-[var(--color-chart-4)] transition-all shadow-sm hover:shadow-md"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Ticket</span>
-            </Link>
+              Logout
+            </button>
 
-            {/* User avatar */}
-            <div className="w-8 h-8 bg-[var(--color-chart-4)] rounded-full flex items-center justify-center font-medium text-sm text-white">
-              N
+            {/* Avatar */}
+            <div
+              className="w-9 h-9 bg-[var(--color-chart-4)] rounded-full flex items-center justify-center 
+                          font-semibold text-sm text-white shadow-sm"
+            >
+              {initials}
             </div>
           </div>
         </div>

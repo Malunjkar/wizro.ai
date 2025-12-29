@@ -1,8 +1,7 @@
-import axios from 'axios';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-import { SetLocalStorage, GetLocalStorage, ClearLocalStorage } from '@/lib/utils';
+import axiosInstance, { setAccessToken } from '@/lib/axiosConfig';
 
 const AuthContext = createContext();
 
@@ -23,40 +22,62 @@ export const AuthProvider = ({ children }) => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // check already user login
-  useEffect(() => {
+  // AUTO LOGIN ON PAGE REFRESH (using refresh cookie)
+  const tryAutoLogin = async () => {
     try {
-      const { userInfo } = GetLocalStorage();
+      const res = await axiosInstance.post('/user/refresh'); // cookie sent automatically
 
-      if (userInfo) {
-        setUser(userInfo);
-        setIsAuthenticated(true);
-      }
+      setAccessToken(res.data.accessToken);
+
+      setUser({
+        email: res.data.email,
+        empID: res.data.empID,
+        fullName: res.data.fullName,
+        role: res.data.role,
+      });
+
+      setIsAuthenticated(true);
     } catch {
-      ClearLocalStorage();
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    tryAutoLogin();
   }, []);
 
-  // post request to login
   const login = async (data) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/user/login', data);
+      const res = await axiosInstance.post('/user/login', data, {
+        withCredentials: true,
+      });
 
-      SetLocalStorage(response.data);
-      setUser(response.data);
+      // The backend returns a short-lived access token
+      setAccessToken(res.data.accessToken);
+
+      // Store user in memory only (secure)
+      setUser({
+        email: res.data.email,
+        empID: res.data.empID,
+        fullName: res.data.fullName,
+        role: res.data.role,
+      });
+
       setIsAuthenticated(true);
-      toast.success(`Welcome back, ${response.data.fullName}!`);
+
+      toast.success(`Welcome back, ${res.data.fullName}!`);
 
       return 200;
     } catch (error) {
       if (error.response?.status === 404) {
         toast.error(error.response.data?.Mess);
       } else {
-        toast.error('SomeThing Went Wrong!!');
+        toast.error('Something went wrong!');
       }
 
       return 400;
@@ -67,10 +88,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     setLoading(true);
-
     try {
-      await axios.post('http://localhost:5000/user/register', data);
-
+      await axiosInstance.post('/user/register', data, { withCredentials: true });
       toast.success(`Welcome, continue by logging in, ${data.fullName}!`);
 
       return 200;
@@ -78,7 +97,7 @@ export const AuthProvider = ({ children }) => {
       if (error.response?.status === 409) {
         toast.error(error.response.data?.mess);
       } else {
-        toast.error('SomeThing Went Wrong!!');
+        toast.error('Something went wrong!');
       }
 
       return 400;
@@ -87,36 +106,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    ClearLocalStorage();
+  const logout = async () => {
+    try {
+      await axiosInstance.post('/user/logout', {}, { withCredentials: true });
+    } catch {
+      toast.error('logout error');
+    }
+
+    setAccessToken(null);
     setUser(null);
     setIsAuthenticated(false);
     toast.success('Logged out successfully');
   };
 
-  // Check if user has permission for specific actions
   const hasPermission = (action) => {
     if (!user) {
       return false;
     }
 
     const permissions = {
-      // Tech Lead permissions
       manage_users: user.role === 'admin',
       assign_tickets: user.role === 'tech_lead',
       view_all_tickets: true,
       create_tickets: true,
 
-      // Developer permissions
       update_ticket_status: user.role === 'developer',
       log_time: user.role === 'developer',
       forward_tickets: user.role === 'developer',
 
-      // Customer permissions
-      view_dashboard: true, // All roles can view dashboard
-      add_comments: true, // All roles can add comments
+      view_dashboard: true,
+      add_comments: true,
 
-      // Admin actions
       delete_tickets: user.role === 'tech_lead',
       view_user_management: user.role === 'admin',
     };
@@ -124,91 +144,110 @@ export const AuthProvider = ({ children }) => {
     return permissions[action] || false;
   };
 
-  const getTmNavigationItems = () => {
-    if (!user) {
-      return [];
-    }
+  const getTmNavigationItems = () =>
+    user
+      ? [
+          { id: 'TmDashboard', name: 'Dashboard', href: '/tm/dashboard' },
+          { id: 'TmAssignment', name: 'Assignment', href: '/tm/assignment' },
+          { id: 'TmTicktes', name: 'Ticktes', href: '/tm/tickets' },
+        ]
+      : [];
 
-    const baseItems = [
-      { id: 'TmDashboard', name: 'Dashboard', href: '/tm/dashboard' },
-      { id: 'TmAssignment', name: 'Assignment', href: '/tm/assignment' },
-      { id: 'TmTicktes', name: 'Ticktes', href: '/tm/tickets' },
-    ];
+  const getAmNavigationItems = () =>
+    user
+      ? [
+          {
+            id: 'AmDashboard',
+            name: 'Dashboard',
+            href: user.role === 3 ? '/am/dashboard-user' : '/am/dashboard',
+          },
+          {
+            id: 'AmAttendance',
+            name: 'Attendance',
+            href: '/am/attendance',
+          },
+          {
+            id: 'AmLeave',
+            name: 'Leave',
+            href: user.role === 3 || user.role === 2 ? '/am/myleave-user' : '/am/myleave',
+          },
+        ]
+      : [];
 
-    return [...baseItems];
-  };
+  const getPmNavigationItems = () =>
+    user
+      ? [
+          {
+            id: 'PmDashboard',
+            name: 'Dashboard',
+            href: user.role === 3 ? '/pm/dashboard-user' : '/pm/dashboard',
+          },
+          {
+            id: 'PmProjects',
+            name: 'Projects',
+            href: user.role === 3 ? '/pm/projects-user' : '/pm/projects',
+          },
+          {
+            id: 'PmTasks',
+            name: 'My tasks',
+            href: user.role === 3 ? '/pm/tasks-user' : '/pm/tasks',
+          },
+          {
+            id: 'PmTimesheet',
+            name: 'Timesheet',
+            href: user.role === 3 ? '/pm/timesheet-user' : '/pm/timesheet',
+          },
 
-  const getAmNavigationItems = () => {
-    if (!user) {
-      return [];
-    }
+        ]
+      : [];
 
-    const baseItems = [
-      { id: 'AmDashboard', name: 'Dashboard', href: '/am/dashboard' },
-      { id: 'AmAttendance', name: 'Attendance', href: '/am/attendance' },
-      { id: 'AmLeave', name: 'Leave', href: '/am/myleave' },
-      { id: 'AmPayroll', name: 'Payroll', href: '/am/payroll' },
-    ];
+const getHrNavigationItems = () =>
+  user
+    ? [
+        {
+          id: 'HrDashboard',
+          name: 'Dashboard',
+          href:
+            user.role === 3||user.role===2
+              ? '/hr/dashboard-user'
+              : '/hr/dashboard',
+        },
+        {
+          id: 'HrEmployees',
+          name: 'Employees',
+          href:
+            user.role === 3||user.role===2
+              ? '/hr/employees-user'
+              : '/hr/employees',
+        },
+        {
+          id: 'HrPayroll',
+          name: 'Payroll',
+          href:
+            user.role === 3||user.role===2
+              ? '/hr/payroll-user'
+              : '/hr/payroll',
+        },
+        {
+          id: 'HrPerformance',
+          name: 'Performance',
+          href:
+            user.role === 3
+              ? '/hr/performance-user'
+              : '/hr/performance',
+        },
+      ]
+    : [];
 
-    return [...baseItems];
-  };
 
-  const getPmNavigationItems = () => {
-    if (!user) {
-      return [];
-    }
-
-    const baseItems = [
-      { id: 'PmDashboard', name: 'Dashboard', href: '/pm/dashboard' },
-      { id: 'PmTasks', name: 'My tasks', href: '/pm/tasks' },
-      { id: 'PmProjects', name: 'Projects', href: '/pm/projects' },
-      { id: 'PmReports', name: 'Reports', href: '/pm/reports' },
-    ];
-
-    return [...baseItems];
-  };
-
-  const getHrNavigationItems = () => {
-    if (!user) {
-      return [];
-    }
-
-    const baseItems = [
-      { id: 'HrDashboard', name: 'Dashboard', href: '/hr/dashboard' },
-      { id: 'HrEmployees', name: 'Employees', href: '/hr/employees' },
-      { id: 'HrLeaveManagement', name: 'Leave Management', href: '/hr/leavemanagement' },
-      { id: 'HrPayroll', name: 'Payroll', href: '/hr/payroll' },
-      // { id: "HrRecruitment", name: "Recruitment", href: "/hr/recruitment" },
-    ];
-
-    return [...baseItems];
-  };
-
-  const getUmNavigationItems = () => {
-    if (!user) {
-      return [];
-    }
-
-    const baseItems = [
-      { id: 'UmDashboard', name: 'Dashboard', href: '/um/dashboard' },
-      { id: 'UmUsers', name: 'Users', href: '/um/users' },
-      { id: 'UmPermission', name: 'Permission', href: '/um/permission' },
-    ];
-
-    return [...baseItems];
-  };
-
-  // Get role display name
-  const getRoleDisplayName = (role) => {
-    const roleNames = {
-      tech_lead: 'Tech Lead',
-      developer: 'Developer',
-      customer: 'Customer',
-      admin: 'Admin',
-    };
-
-    return roleNames[role] || role;
-  };
+  const getUmNavigationItems = () =>
+    user
+      ? [
+          { id: 'UmDashboard', name: 'Dashboard', href: '/um/dashboard' },
+          { id: 'UmUsers', name: 'Users', href: '/um/users' },
+          { id: 'UmPermission', name: 'Permission', href: '/um/permission' },
+        ]
+      : [];
 
   const value = {
     user,
@@ -223,7 +262,6 @@ export const AuthProvider = ({ children }) => {
     getTmNavigationItems,
     getAmNavigationItems,
     getUmNavigationItems,
-    getRoleDisplayName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

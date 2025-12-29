@@ -1,575 +1,535 @@
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Plus, ClipboardList, Pencil, Filter, ArrowUpDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-import PageHeader from '@/components/layout/PageHeader';
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { Card, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import MultipleSelector from '@/components/ui/multiple-selector';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Progress } from '@/components/ui/progress';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import axiosInstance from '@/lib/axiosConfig';
 
-const ProjectPage = () => {
-  const [formData, setFormData] = useState({
-    projectName: '',
-    projectGroupName: '',
-    projectStatus: '',
-    projectManager: '',
-    projectTeam: [],
-    projectFrom: null,
-    projectTo: null,
-  });
+export default function PmProjectPage() {
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
 
-  const [groupProjectName, setGroupProjectName] = useState('');
+  const [showCreateProject, setShowCreateProject] = useState(false);
 
-  const [groupProject, setGroupProject] = useState([]);
+  const [projectName, setProjectName] = useState('');
 
-  const [manager, setManager] = useState([]);
+  const [projectDescription, setProjectDescription] = useState('');
 
-  const [status, setStatus] = useState([]);
+  const [leadId, setLeadId] = useState('');
 
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [startDate, setStartDate] = useState('');
 
-  const [projects, setprojects] = useState([]);
+  const [deadlineDate, setDeadlineDate] = useState('');
 
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const [statusId, setStatusId] = useState('');
 
-  const handleDateSelect = (range) => {
-    if (!range) {
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      projectFrom: range.from,
-      projectTo: range.to,
-    }));
-  };
+  const [statusList, setStatusList] = useState([]);
 
-  const validateForm = () => {
-    if (
-      !formData.projectName ||
-      !formData.projectGroupName ||
-      !formData.projectStatus ||
-      !formData.projectManager ||
-      !formData.projectTeam ||
-      !formData.projectFrom ||
-      !formData.projectTo
-    ) {
-      toast('Please Fill All the Required Fields');
+  const [employees, setEmployees] = useState([]);
 
-      return false;
-    } else if (formData.projectName.length < 3) {
-      toast('Title must be at least 3 characters long');
+  const [projects, setProjects] = useState([]);
 
-      return false;
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        projectFrom: format(prev.projectFrom, 'yyyy-MM-dd'),
-        projectTo: format(prev.projectTo, 'yyyy-MM-dd'),
-        created_by: Number(localStorage.getItem('empID')),
-      }));
+  // edit
+  const [isEditMode, setIsEditMode] = useState(false);
 
-      return true;
-    }
-  };
+  const [editingProjectId, setEditingProjectId] = useState(null);
 
-  const resetProjectForm = () => {
-    setFormData({
-      projectName: '',
-      projectGroupName: '',
-      projectStatus: '',
-      projectManager: '',
-      projectTeam: [],
-      projectFrom: null,
-      projectTo: null,
+  // Create team state
+  const [teamProjectId, setTeamProjectId] = useState('');
+
+  const [teamLeadName, setTeamLeadName] = useState('');
+
+  const [teamName, setTeamName] = useState('');
+
+  const [teamCount, setTeamCount] = useState(0);
+
+  const [selectedMembers, setSelectedMembers] = useState([]);
+
+  //filter and sort
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const [sortOrder, setSortOrder] = useState('asc');
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredProjects = projects
+    .filter((p) => {
+      if (filterStatus === 'all') {
+        return true;
+      }
+
+      return p.status?.toLowerCase() === filterStatus.toLowerCase();
+    })
+    .filter((p) => {
+      const search = searchTerm.toLowerCase();
+
+      return p.project_name?.toLowerCase().includes(search) || p.project_lead?.toLowerCase().includes(search);
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.start_date);
+
+      const dateB = new Date(b.start_date);
+
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
+
+  const fetchDropdownData = async () => {
+    try {
+      const [statusRes, userRes] = await Promise.all([
+        axiosInstance.get('pm/projectStatus'),
+        axiosInstance.get('pm/getEmp'),
+      ]);
+
+      setStatusList(Array.isArray(statusRes.data) ? statusRes.data : statusRes.data ? [statusRes.data] : []);
+      setEmployees(Array.isArray(userRes.data) ? userRes.data : userRes.data ? [userRes.data] : []);
+    } catch {
+      toast.error('Error fetching employess');
+    }
   };
 
   const fetchProjects = async () => {
     try {
-      const resp = await axiosInstance.get('/pm/getProjects');
+      const res = await axiosInstance.get('pm/getProjects');
 
-      setprojects(resp.data);
+      setProjects(Array.isArray(res.data) ? res.data : []);
     } catch {
-      toast.error('Something went wrong....');
-    }
-  };
-
-  const addProject = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      await axiosInstance.post('/pm/addProject', formData);
-
-      toast.success('Successfully Created the Project');
-      resetProjectForm();
-      fetchProjects();
-    } catch {
-      toast.error('Something went wrong....');
-    }
-  };
-
-  const fetchGroupProjectName = async () => {
-    try {
-      const resp = await axiosInstance.get('/pm/getGroupProjectName');
-
-      setGroupProject(resp.data);
-    } catch {
-      toast.error('Something went wrong....');
-    }
-  };
-
-  const addGroupProjectName = async () => {
-    try {
-      await axiosInstance.post('/pm/addGroupProjectName', {
-        groupProjectName: groupProjectName,
-      });
-
-      toast.success('Successfully Created Project Group');
-      fetchGroupProjectName();
-    } catch {
-      toast.error('Sometime Went Wrong....');
+      toast.error('Error fetching projects');
     }
   };
 
   useEffect(() => {
-    const getManager = async () => {
-      try {
-        const resp = await axiosInstance.get('/pm/getManager');
-
-        setManager(resp.data);
-      } catch {
-        toast.error('Something went wrong....');
-      }
-    };
-
-    const getGroupProjectName = async () => {
-      try {
-        const resp = await axiosInstance.get('/pm/getGroupProjectName');
-
-        setGroupProject(resp.data);
-      } catch {
-        toast.error('Something went wrong....');
-      }
-    };
-
-    const getProjects = async () => {
-      try {
-        const resp = await axiosInstance.get('/pm/getProjects');
-
-        setprojects(resp.data);
-      } catch {
-        toast.error('Something went wrong....');
-      }
-    };
-
-    const getStatus = async () => {
-      try {
-        const resp = await axiosInstance.get('/common/getStatus');
-
-        setStatus(resp.data);
-      } catch {
-        toast.error('Something went wrong....');
-      }
-    };
-
-    const getTeamMembers = async () => {
-      try {
-        const resp = await axiosInstance.get('/pm/getTeamMembers');
-
-        setTeamMembers(resp.data);
-      } catch {
-        toast.error('Failed to fetch users');
-      }
-    };
-
-    getManager();
-    getStatus();
-    getGroupProjectName();
-    getTeamMembers();
-    getProjects();
+    fetchDropdownData();
+    fetchProjects();
   }, []);
 
+  const handleSaveProject = async () => {
+    if (!projectName || !leadId || !startDate || !deadlineDate || !statusId) {
+      return;
+    }
+
+    try {
+      if (isEditMode) {
+        // UPDATE
+        await axiosInstance.post(`pm/updateProject/${editingProjectId}`, {
+          pName: projectName,
+          pDesc: projectDescription,
+          leadId: Number(leadId),
+          startDate,
+          endDate: deadlineDate,
+          statusId: Number(statusId),
+        });
+
+        toast.success('Project updated successfully');
+      } else {
+        // CREATE
+        await axiosInstance.post('pm/addProject', {
+          pName: projectName,
+          pDesc: projectDescription,
+          leadId: Number(leadId),
+          startDate,
+          endDate: deadlineDate,
+          statusId: Number(statusId),
+        });
+
+        toast.success('Project created successfully');
+      }
+
+      // reset
+      setShowCreateProject(false);
+
+      resetProjectForm();
+
+      fetchProjects();
+    } catch {
+      toast.error('Error saving project');
+    }
+  };
+
+  useEffect(() => {
+    if (!teamProjectId) {
+      setTeamLeadName('');
+
+      return;
+    }
+
+    const project = projects.find((p) => String(p.n_project_id) === String(teamProjectId));
+
+    if (project) {
+      setTeamLeadName(project.project_lead || '');
+
+      if (project.team_lead) {
+        setSelectedMembers([String(project.team_lead)]);
+      }
+    } else {
+      setTeamLeadName('');
+    }
+  }, [teamProjectId, projects]);
+
+  const handleCreateTeam = async () => {
+    if (!teamProjectId || !teamName || !teamCount || selectedMembers.length === 0) {
+      return;
+    }
+
+    if (selectedMembers.length !== Number(teamCount)) {
+      toast.warning('Select exactly the number of members equal to team count (including lead).');
+
+      return;
+    }
+
+    try {
+      await axiosInstance.post('pm/addTeam', {
+        projectId: Number(teamProjectId),
+        teamName: teamName,
+        teamCount: Number(teamCount),
+        memberIds: selectedMembers.map((id) => Number(id)),
+      });
+      toast.success('Team created successfully');
+
+      setShowCreateTeam(false);
+      setTeamProjectId('');
+      setTeamLeadName('');
+      setTeamName('');
+      setTeamCount(0);
+      setSelectedMembers([]);
+
+      fetchProjects();
+    } catch {
+      toast.error('Error creating team');
+    }
+  };
+
+  const toggleMember = (id) => {
+    const exists = selectedMembers.includes(id);
+
+    if (exists) {
+      setSelectedMembers(selectedMembers.filter((m) => m !== id));
+
+      return;
+    }
+    if (selectedMembers.length >= Number(teamCount) && Number(teamCount) > 0) {
+      toast.info('Already selected maximum team members');
+
+      return;
+    }
+    setSelectedMembers([...selectedMembers, id]);
+  };
+
+  const statusBadgeClass = (statusName) => {
+    const s = String(statusName).toLowerCase();
+
+    switch (s) {
+      case 'assigned':
+        return 'bg-indigo-200 text-indigo-700';
+      case 'planning':
+        return 'bg-gray-200 text-gray-700';
+      case 'development':
+        return 'bg-blue-200 text-blue-700';
+      case 'testing':
+        return 'bg-yellow-200 text-yellow-700';
+      case 'completed':
+        return 'bg-green-200 text-green-700';
+      case 'closed':
+        return 'bg-red-200 text-red-700';
+      default:
+        return 'bg-purple-200 text-purple-700';
+    }
+  };
+
+  const resetProjectForm = () => {
+    setIsEditMode(false);
+    setEditingProjectId(null);
+    setProjectName('');
+    setProjectDescription('');
+    setLeadId('');
+    setStartDate('');
+    setDeadlineDate('');
+    setStatusId('');
+  };
+
   return (
-    <div className="bg-[var(--color-background)] min-h-screen">
-      <div className="px-6 py-6">
-        <PageHeader
-          title={'Project'}
-          subTitle={'Track and manage your projects'}
-          actions={
-            <>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="border border-[var(--color-border)] rounded-lg flex items-center justify-center hover:border-[var(--color-ring)] transition-colors">
-                    <Plus className="w-4 h-4 text-[var(--color-muted-foreground)] mr-2" />
-                    Create Project
-                  </Button>
-                </DialogTrigger>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-800 flex items-center gap-2">
+              <ClipboardList className="w-6 h-6 text-blue-600" /> Project Management
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Manage company-wide projects efficiently</p>
+          </div>
 
-                <DialogContent className="bg-[var(--color-card)] border-[var(--color-border)] text-[var(--color-card-foreground)] w-sm p-0">
-                  {/* Modal Header */}
-                  <DialogHeader className="px-6 py-4 border-b border-[var(--color-border)]">
-                    <DialogTitle className="text-lg font-semibold">Create a project</DialogTitle>
-                    <DialogDescription className="text-sm text-[var(--color-muted-foreground)] mt-2">
-                      A project represents a team with its own tasks.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  {/* Modal Content */}
-                  <div className="px-6 py-4 space-y-4">
-                    {/* Project Name */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="projectName"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0"
-                      >
-                        Name
-                      </Label>
-                      <Input
-                        id="projectName"
-                        placeholder="Project Name"
-                        value={formData.projectName}
-                        onChange={(e) => handleInputChange('projectName', e.target.value)}
-                        className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]"
-                      />
-                    </div>
-
-                    {/* group name */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="projectGroupName"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0"
-                      >
-                        Group of Project
-                      </Label>
-                      <Select
-                        value={formData.projectGroupName}
-                        onValueChange={(value) => handleInputChange('projectGroupName', value)}
-                      >
-                        <SelectTrigger
-                          id="projectGroupName"
-                          className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]"
-                        >
-                          <SelectValue placeholder="Select Group of Project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {groupProject.map((group) => (
-                            <SelectItem key={group.n_group_id} value={group.n_group_id}>
-                              {group.s_group_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="projectStatus"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0"
-                      >
-                        Status
-                      </Label>
-                      <Select
-                        value={formData.projectStatus}
-                        onValueChange={(value) => handleInputChange('projectStatus', value)}
-                      >
-                        <SelectTrigger
-                          id="projectStatus"
-                          className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]"
-                        >
-                          <SelectValue placeholder="Select Project Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {status.map((stat) => (
-                            <SelectItem key={stat.n_status_id} value={stat.n_status_id}>
-                              {stat.s_status_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Manager */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="projectManager"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0"
-                      >
-                        Manager
-                      </Label>
-                      <Select
-                        value={formData.projectManager}
-                        onValueChange={(value) => handleInputChange('projectManager', value)}
-                      >
-                        <SelectTrigger
-                          id="projectManager"
-                          className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] flex items-center gap-2"
-                        >
-                          <SelectValue placeholder="Select Project Manager" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {manager.map((user) => (
-                            <SelectItem key={user.n_user_id} value={user.n_user_id}>
-                              {user.s_full_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* team */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="projectTeam"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0"
-                      >
-                        Teams
-                      </Label>
-                      <MultipleSelector
-                        className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] flex items-center gap-2"
-                        onChange={(value) => handleInputChange('projectTeam', value)}
-                        defaultOptions={teamMembers}
-                        placeholder="Select team members..."
-                        emptyIndicator={
-                          <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
-                            no results found.
-                          </p>
-                        }
-                      />
-                    </div>
-
-                    {/* Period with Date Range Picker */}
-                    <div className="flex items-center space-x-4">
-                      <Label className="text-sm font-medium text-[var(--color-foreground)] w-20 flex-shrink-0">
-                        Period
-                      </Label>
-                      <Popover modal={true}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formData?.projectFrom ? (
-                              formData.projectTo ? (
-                                <>
-                                  {format(formData.projectFrom, 'dd/MM/yyyy')} -{' '}
-                                  {format(formData.projectTo, 'dd/MM/yyyy')}
-                                </>
-                              ) : (
-                                format(formData.projectFrom, 'dd/MM/yyyy')
-                              )
-                            ) : (
-                              <span className="text-[var(--color-muted-foreground)]">Pick a date range</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto p-0"
-                          align="start"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
-                        >
-                          <Calendar
-                            mode="range"
-                            selected={{
-                              from: formData.projectFrom,
-                              to: formData.projectTo,
-                            }}
-                            onSelect={handleDateSelect}
-                            numberOfMonths={2}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-
-                  {/* Modal Footer */}
-                  <DialogFooter className="px-6 py-4 border-t border-[var(--color-border)]">
-                    <DialogClose asChild>
-                      <Button
-                        variant="outline"
-                        className="border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-                        onClick={resetProjectForm}
-                      >
-                        Cancel
-                      </Button>
-                    </DialogClose>
-                    <DialogClose asChild>
-                      <Button
-                        className="bg-[var(--color-primary)] hover:bg-[var(--color-ring)] text-[var(--color-primary-foreground)]"
-                        onClick={addProject}
-                      >
-                        Create Project
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              {/* group project */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="border border-[var(--color-border)] rounded-lg flex items-center justify-center hover:border-[var(--color-ring)] transition-colors">
-                    <Plus className="w-4 h-4 text-[var(--color-muted-foreground)] mr-2" />
-                    Create Project Group
-                  </Button>
-                </DialogTrigger>
-
-                <DialogContent className="bg-[var(--color-card)] border-[var(--color-border)] text-[var(--color-card-foreground)] w-md p-0">
-                  {/* Modal Header */}
-                  <DialogHeader className="px-6 py-4 border-b border-[var(--color-border)]">
-                    <DialogTitle className="text-lg font-semibold">Create a project group</DialogTitle>
-                    <DialogDescription className="text-sm text-[var(--color-muted-foreground)] mt-2">
-                      A project group represents multiple project in single group.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  {/* Modal Content */}
-                  <div className="px-6 py-4 space-y-4">
-                    {/* Project Name */}
-                    <div className="flex items-center space-x-4">
-                      <Label
-                        htmlFor="groupName"
-                        className="text-sm font-medium text-[var(--color-foreground)] w-30 flex-shrink-0"
-                      >
-                        Group Name
-                      </Label>
-                      <Input
-                        id="groupName"
-                        placeholder="Project Group Name"
-                        value={groupProjectName.groupName}
-                        onChange={(e) => setGroupProjectName(e.target.value)}
-                        className="w-[240px] bg-[var(--color-input)] border-[var(--color-border)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Modal Footer */}
-                  <DialogFooter className="px-6 py-4 border-t border-[var(--color-border)]">
-                    <DialogClose asChild>
-                      <Button
-                        variant="outline"
-                        className="border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-                      >
-                        Cancel
-                      </Button>
-                    </DialogClose>
-
-                    <DialogClose asChild>
-                      <Button
-                        className="bg-[var(--color-primary)] hover:bg-[var(--color-ring)] text-[var(--color-primary-foreground)]"
-                        onClick={addGroupProjectName}
-                      >
-                        Create
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
-          }
-        />
-
-        {/* Projects Header */}
-        <div>
-          {/* Shadcn Table */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-64">Project name</TableHead>
-                <TableHead className="w-32">Team</TableHead>
-                <TableHead className="w-32">Progress</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project.n_project_id} className="hover:bg-[var(--color-muted)]/30 transition-colors">
-                  {/* Project Name + Status */}
-                  <TableCell className="w-64">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[var(--color-foreground)] font-medium">
-                          <Link to={`/pm/project/${project.n_project_id}`} className="hover:underline">
-                            {project.s_project_name}
-                          </Link>
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="text-xs">
-                          {project.project_status}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {project.group_name}
-                        </Badge>
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  {/* Team */}
-                  <TableCell className="w-32">
-                    <div className="flex flex-row space-x-2">
-                      {project.project_team.map((team, index) => (
-                        <Avatar
-                          key={index}
-                          className="w-8 h-8 rounded-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-2 border-[var(--color-ring)] flex items-center justify-center"
-                        >
-                          <span>{team.initial_name.trim()}</span>
-                        </Avatar>
-                      ))}
-                    </div>
-                  </TableCell>
-
-                  {/* Progress */}
-                  <TableCell className="w-48">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-[var(--color-muted-foreground)]" />
-                        <span className="text-[var(--color-muted-foreground)] text-sm">{project.progress}%</span>
-                      </div>
-
-                      {/* ✅ Progress Bar */}
-                      <Progress value={project.progress} className="h-2 bg-[var(--color-muted)]" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="flex gap-3">
+            <Button onClick={() => setShowCreateProject(true)} size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-5 h-5 mr-2" /> Create Project
+            </Button>
+            <Button onClick={() => setShowCreateTeam(true)} size="lg" className="bg-green-600 hover:bg-green-700">
+              <Plus className="w-5 h-5 mr-2" /> Create Team
+            </Button>
+          </div>
         </div>
+
+        {/* CREATE PROJECT DIALOG */}
+        <Dialog
+          open={showCreateProject}
+          onOpenChange={(isOpen) => {
+            setShowCreateProject(isOpen);
+            if (!isOpen) {
+              resetProjectForm();
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{isEditMode ? 'Edit Project' : 'Create New Project'}</DialogTitle>
+              <DialogDescription>
+                {isEditMode ? 'Update project details.' : 'Fill in the details to create a new project.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Project Name</Label>
+                <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <textarea
+                  className="w-full border rounded-lg p-2 text-sm"
+                  rows={3}
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Deadline</Label>
+                  <Input type="date" value={deadlineDate} onChange={(e) => setDeadlineDate(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Project Lead</Label>
+                  <select
+                    value={leadId}
+                    onChange={(e) => setLeadId(e.target.value)}
+                    className="w-full border rounded-md p-2 text-sm"
+                  >
+                    <option value="">Select Lead</option>
+                    {employees.map((u) => (
+                      <option key={u.n_user_id} value={u.n_user_id}>
+                        {u.s_full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Status</Label>
+                  <select
+                    value={statusId}
+                    onChange={(e) => setStatusId(e.target.value)}
+                    className="w-full border rounded-md p-2 text-sm"
+                  >
+                    <option value="">Select Status</option>
+                    {statusList.map((s) => (
+                      <option key={s.n_status_id} value={s.n_status_id}>
+                        {s.s_status_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateProject(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveProject}>{isEditMode ? 'Update' : 'Create'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* CREATE TEAM DIALOG */}
+        <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Create Team</DialogTitle>
+              <DialogDescription>Select project and create team.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Select Project</Label>
+                <select
+                  value={teamProjectId}
+                  onChange={(e) => setTeamProjectId(e.target.value)}
+                  className="w-full border rounded p-2 text-sm"
+                >
+                  <option value="">Select Project</option>
+                  {projects.map((p) => (
+                    <option key={p.n_project_id} value={p.n_project_id}>
+                      {p.project_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label>Team Lead</Label>
+                <Input disabled value={teamLeadName} placeholder="Auto fetched" />
+              </div>
+
+              <div>
+                <Label>Team Name</Label>
+                <Input value={teamName} onChange={(e) => setTeamName(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Team Count</Label>
+                <Input type="number" value={teamCount} onChange={(e) => setTeamCount(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Select Members</Label>
+                <div className="grid grid-cols-2 gap-2 h-32 overflow-y-auto border rounded p-2">
+                  {employees.map((e) => (
+                    <label key={e.n_user_id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.includes(String(e.n_user_id))}
+                        onChange={() => toggleMember(String(e.n_user_id))}
+                      />
+                      {e.s_full_name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateTeam(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTeam}>Create Team</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Card className="border-border">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Filters + Sorting */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+
+              {/* Status Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-3 py-1 rounded-lg border border-border bg-background text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+              >
+                <option value="all">All Status</option>
+                {statusList.map((s) => (
+                  <option key={s.n_status_id} value={s.s_status_name}>
+                    {s.s_status_name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Sort Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                Sort by Start Date ({sortOrder === 'asc' ? '↑' : '↓'})
+              </Button>
+            </div>
+
+            {/* Search */}
+            <Input
+              type="text"
+              placeholder="Search project or lead..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+          </CardHeader>
+        </Card>
+
+        {/* PROJECT TABLE */}
+        <Card className="border border-gray-200 shadow-sm p-4">
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gray-100 text-left text-sm font-medium text-gray-700">
+                  <th className="p-3">Project Name</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Start Date</th>
+                  <th className="p-3">End Date</th>
+                  <th className="p-3">Project Lead</th>
+                  <th className="p-3">Team Count</th>
+                  <th className="p-3">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody className="text-sm text-gray-800">
+                {filteredProjects.map((p) => (
+                  <tr key={p.n_project_id} className="border-b hover:bg-gray-50">
+                    <td className="p-3">{p.project_name}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadgeClass(p.status)}`}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="p-3">{p.start_date}</td>
+                    <td className="p-3">{p.end_date}</td>
+                    <td className="p-3">{p.project_lead}</td>
+                    <td className="p-3 text-center">{p.team_count}</td>
+                    <td className="p-3 cursor-pointer text-gray-600">
+                      <Pencil
+                        className="w-5 h-5"
+                        onClick={() => {
+                          setIsEditMode(true);
+                          setEditingProjectId(p.n_project_id);
+
+                          setProjectName(p.project_name);
+                          setProjectDescription(p.description || '');
+                          setLeadId(p.team_lead);
+                          setStartDate(p.start_date);
+                          setDeadlineDate(p.end_date);
+                          setStatusId(p.n_status_id);
+
+                          setShowCreateProject(true);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default ProjectPage;
+}

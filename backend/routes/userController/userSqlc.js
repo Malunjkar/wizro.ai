@@ -1,4 +1,18 @@
 export default {
+  clearRefreshToken(data) {
+    const obj = {};
+
+    const { userId } = data;
+
+    obj.queryString = `
+      UPDATE public.tbl_users
+      SET refresh_token = NULL
+      WHERE n_user_id = $1;
+    `;
+    obj.arr = [userId];
+
+    return obj;
+  },
   deleteUser: (data) => {
     const obj = {};
 
@@ -15,6 +29,18 @@ export default {
 
     return obj;
   },
+  getUserById(data) {
+    const obj = {};
+
+    const { userId } = data;
+
+    obj.queryString = `
+      SELECT * FROM public.tbl_users WHERE n_user_id = $1;
+    `;
+    obj.arr = [userId];
+
+    return obj;
+  },
   login: (data) => {
     const obj = {};
 
@@ -23,6 +49,7 @@ export default {
 
     return obj;
   },
+
   register: (data) => {
     const obj = {};
 
@@ -32,6 +59,22 @@ export default {
 
     return obj;
   },
+
+  updateRefreshToken(data) {
+    const obj = {};
+
+    const { userId, refreshToken } = data;
+
+    obj.queryString = `
+      UPDATE public.tbl_users
+      SET refresh_token = $1
+      WHERE n_user_id = $2;
+    `;
+    obj.arr = [refreshToken, userId];
+
+    return obj;
+  },
+
   updateUser: (data) => {
     const obj = {};
 

@@ -19,4 +19,5 @@ CREATE TABLE IF NOT EXISTS public.tbl_pm_projects
 
 TABLESPACE pg_default;
 
+
 ALTER TABLE IF EXISTS public.tbl_pm_projects OWNER to postgres;

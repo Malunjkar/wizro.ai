@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
-export default function HrTeamPage() {
+export default function HrPerformanceUser() {
   const [isOpen, setIsOpen] = useState(false);
 
   const teamMembers = [

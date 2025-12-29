@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-const HrLeaveManagementPage = () => {
+const HrEmpPage = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const [filterDepartment, setFilterDepartment] = useState('all');
@@ -633,4 +633,4 @@ const HrLeaveManagementPage = () => {
   );
 };
 
-export default HrLeaveManagementPage;
+export default HrEmpPage;

@@ -1,76 +1,90 @@
 import ProtectedRoute from '@/context/ProtectedRoute';
-import PmCreateTaskPage from '@/pages/PM/PmCreateTaskPage';
 import PmDashboardPage from '@/pages/PM/PmDashboardPage';
+import PmDashboardUser from '@/pages/PM/PmDashboardUSer';
 import PmLayout from '@/pages/PM/PmLayout';
 import PmProjectPage from '@/pages/PM/PmProjectPage';
-import PmProjectViewPage from '@/pages/PM/PmProjectViewPage';
-import PmReportsPage from '@/pages/PM/PmReportsPage';
+import PmProjectUser from '@/pages/PM/PmProjectUser';
 import PmTaskPage from '@/pages/PM/PmTaskPage';
-import PmTaskViewPage from '@/pages/PM/PmTaskViewPage';
-
-// const ProtectedUserManagement = withRoleProtection(
-//   UserManagementPage,
-//   "admin"
-// );
-
+import PmTaskUser from '@/pages/PM/PmTaskUser';
+import PmTimesheetPage from '@/pages/PM/PmTimesheetPage';
+import PmTimesheetUser from '@/pages/PM/PmTimesheetUser';
 export default {
   path: '/pm',
-  element: <PmLayout />,
+
+  element: (
+    <ProtectedRoute requiredRole={[1, 2, 3]}>
+      <PmLayout />
+    </ProtectedRoute>
+  ),
 
   children: [
     {
       path: 'projects',
       element: (
-        <ProtectedRoute>
+        <ProtectedRoute requiredRole={[1, 2]}>
           <PmProjectPage />
         </ProtectedRoute>
       ),
     },
+
     {
-      path: 'project/:id',
+      path: 'projects-user',
       element: (
-        <ProtectedRoute>
-          <PmProjectViewPage />
+        <ProtectedRoute requiredRole={3}>
+          <PmProjectUser />
         </ProtectedRoute>
       ),
     },
-    {
-      path: 'task/:id',
-      element: (
-        <ProtectedRoute>
-          <PmTaskViewPage />
-        </ProtectedRoute>
-      ),
-    },
-    {
-      path: 'reports',
-      element: (
-        <ProtectedRoute>
-          <PmReportsPage />
-        </ProtectedRoute>
-      ),
-    },
+
     {
       path: 'tasks',
       element: (
-        <ProtectedRoute>
+        <ProtectedRoute requiredRole={[1, 2]}>
           <PmTaskPage />
         </ProtectedRoute>
       ),
     },
+
     {
-      path: 'create',
+      path: 'tasks-user',
       element: (
-        <ProtectedRoute>
-          <PmCreateTaskPage />
+        <ProtectedRoute requiredRole={3}>
+          <PmTaskUser />
+        </ProtectedRoute>
+      ),
+    },
+
+    {
+      path: 'dashboard',
+      element: (
+        <ProtectedRoute requiredRole={[1, 2]}>
+          <PmDashboardPage />
+        </ProtectedRoute>
+      ),
+    },
+
+    {
+      path: 'dashboard-user',
+      element: (
+        <ProtectedRoute requiredRole={3}>
+          <PmDashboardUser />
         </ProtectedRoute>
       ),
     },
     {
-      path: 'dashboard',
+      path: 'timesheet',
       element: (
-        <ProtectedRoute>
-          <PmDashboardPage />
+        <ProtectedRoute requiredRole={[1, 2]}>
+          <PmTimesheetPage />
+        </ProtectedRoute>
+      ),
+    },
+
+    {
+      path: 'timesheet-user',
+      element: (
+        <ProtectedRoute requiredRole={3}>
+          <PmTimesheetUser />
         </ProtectedRoute>
       ),
     },

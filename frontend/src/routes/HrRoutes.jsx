@@ -1,53 +1,96 @@
 import ProtectedRoute from '@/context/ProtectedRoute';
-import HrDashboardPage from '@/pages/HR/HrDashboardPage';
 import HrLayout from '@/pages/HR/HrLayout';
-import HrLeaveManagementPage from '@/pages/HR/HrLeaveManagementPage';
+
+import HrDashboardPage from '@/pages/HR/HrDashboardPage';
+import HrDashboardUser from '@/pages/HR/HrDashboardUser';
+
+import HrEmpPage from '@/pages/HR/HrEmpPage';
+import HrEmpUser from '@/pages/HR/HrEmpUser';
+
 import HrPayrollPage from '@/pages/HR/HrPayrollPage';
-import HrRecruitmentPage from '@/pages/HR/HrRecruitmentPage';
-import HrTeamPage from '@/pages/HR/HrTeamPage';
+import HrPayrollUser from '@/pages/HR/HrPayrollUser';
+
+import HrPerformancePage from '@/pages/HR/HrPerformancePage';
+import HrPerformanceUser from '@/pages/HR/HrPerformanceUser';
 
 export default {
   path: '/hr',
-  element: <HrLayout />,
+
+  element: (
+    <ProtectedRoute requiredRole={[1, 2, 3,4]}>
+      <HrLayout />
+    </ProtectedRoute>
+  ),
 
   children: [
-    {
-      path: 'employees',
-      element: (
-        <ProtectedRoute>
-          <HrTeamPage />
-        </ProtectedRoute>
-      ),
-    },
+    // DASHBOARD
     {
       path: 'dashboard',
       element: (
-        <ProtectedRoute>
+        <ProtectedRoute requiredRole={[1,4]}>
           <HrDashboardPage />
         </ProtectedRoute>
       ),
     },
     {
-      path: 'leavemanagement',
+      path: 'dashboard-user',
       element: (
-        <ProtectedRoute>
-          <HrLeaveManagementPage />
+        <ProtectedRoute requiredRole={[2, 3]}>
+          <HrDashboardUser />
+        </ProtectedRoute>
+      ),
+    },
+
+    // EMPLOYEES
+    {
+      path: 'employees',
+      element: (
+        <ProtectedRoute requiredRole={[1,4]}>
+          <HrEmpPage />
         </ProtectedRoute>
       ),
     },
     {
+      path: 'employees-user',
+      element: (
+        <ProtectedRoute requiredRole={[2, 3]}>
+          <HrEmpUser />
+        </ProtectedRoute>
+      ),
+    },
+
+    // PAYROLL
+    {
       path: 'payroll',
       element: (
-        <ProtectedRoute>
+        <ProtectedRoute requiredRole={[1,4]}>
           <HrPayrollPage />
         </ProtectedRoute>
       ),
     },
     {
-      path: 'recruitment',
+      path: 'payroll-user',
       element: (
-        <ProtectedRoute>
-          <HrRecruitmentPage />
+        <ProtectedRoute requiredRole={[2, 3]}>
+          <HrPayrollUser />
+        </ProtectedRoute>
+      ),
+    },
+
+    // PERFORMANCE
+    {
+      path: 'performance',
+      element: (
+        <ProtectedRoute requiredRole={[1,4]}>
+          <HrPerformancePage />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: 'performance-user',
+      element: (
+        <ProtectedRoute requiredRole={[2, 3]}>
+          <HrPerformanceUser />
         </ProtectedRoute>
       ),
     },

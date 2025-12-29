@@ -4,9 +4,14 @@ import userController from './userController.js';
 
 const userRouter = express.Router();
 
-userRouter.route('/register').post(userController.register);
-userRouter.route('/login').post(userController.login);
-userRouter.route('/updateUser').post(userController.updateUser);
-userRouter.route('/deleteUser').post(userController.deleteUser);
+userRouter.post('/register', userController.register);
+userRouter.post('/login', userController.login);
+userRouter.post('/updateUser', userController.updateUser);
+userRouter.post('/deleteUser', userController.deleteUser);
+
+// NEW secure routes
+// userRouter.post('/refresh', userController.refreshToken);
+userRouter.post('/logout', userController.logout);
+
 
 export default userRouter;

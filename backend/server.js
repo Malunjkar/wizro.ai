@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import multer from 'multer';
@@ -7,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
 
 import pool from './config/config.js';
+import amRoutes from './routes/amController/amRoutes.js';
 import commonRoutes from './routes/commonController/commonRoutes.js';
 import pmRoutes from './routes/pmController/pmRoutes.js';
 import ticketRoutes from './routes/ticketController/ticketRoutes.js';
@@ -31,18 +33,24 @@ const __filename = fileURLToPath(import.meta.url),
 const app = express();
 
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
 app.use(
   cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    origin: ['http://localhost:5173'],
+    origin: 'http://localhost:5173',
   }),
 );
 
+app.use('/uploads', express.static('uploads'));
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Multer setup (unchanged)
 const storage = multer.diskStorage({
     destination(_req, _file, callback) {
       callback(null, 'uploads/');
@@ -57,14 +65,12 @@ const storage = multer.diskStorage({
   }),
   upload = multer({ storage });
 
+// Route mounts (unchanged)
 app.use('/tms', ticketRoutes);
 app.use('/user', userRoutes);
 app.use('/pm', pmRoutes);
+app.use('/am', amRoutes);
 app.use('/common', commonRoutes);
-
-app.get('/', (_req, res) => {
-  res.send('Hello world');
-});
 
 const fileUploadLimit = 10;
 
@@ -108,6 +114,9 @@ app.post(
   },
 );
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT);
+app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Server running on port ${PORT}`);
+});

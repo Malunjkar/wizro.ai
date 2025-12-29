@@ -1,6 +1,6 @@
 -- Table: public.tbl_users
 
-DROP TABLE IF EXISTS public.tbl_users;
+-- DROP TABLE IF EXISTS public.tbl_users;
 
 CREATE TABLE IF NOT EXISTS public.tbl_users
 (
@@ -26,4 +26,5 @@ INSERT INTO public.tbl_users(s_full_name, s_email, s_password, n_role, n_status,
 VALUES ('admin', 'admin@kosqu.com', '$2b$10$5aWafvB6q2kX6eQrdCJd3uGt72Z1Thf6h9w2zJ6vrwjIMKdxlXbZu', 1, 1, 0),
 ('project manager', 'pm@kosqu.com', '$2b$10$B5xugUmrUWOAu/qUDQGO7.JpE4Qu.v7UFmP1i4IIXBE1Y4jRnDem2', 2, 1, 0),
 ('Emp 1', 'emp1@kosqu.com', '$2b$10$o9q/9k/jJGg3VNkTVtqRSurr3REW9r0MY.2AM5ZgtXRIaP6gl7kDa', 3, 1, 0),
-('Emp 2', 'emp2@kosqu.com', '$2b$10$nTvwgrTwHwk3MxwnqijKl.W1xJpNo/Dpfzl5y8dYxfaLLP2LVhqya', 3, 1, 0);
+('Emp 2', 'emp2@kosqu.com', '$2b$10$nTvwgrTwHwk3MxwnqijKl.W1xJpNo/Dpfzl5y8dYxfaLLP2LVhqya', 3, 1, 0),
+('hr','hr@kosqu.com','$2b$10$PR7pfWajI50YY7/jt24SVeGw/Twz.jejkMDeCDnJm7hvOCCmKm0Im',4,1,0);

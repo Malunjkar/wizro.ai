@@ -36,7 +36,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
-const HrRecruitmentPage = () => {
+const HrPerformancePage = () => {
   const [activeTab, setActiveTab] = useState('positions');
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -988,4 +988,4 @@ const HrRecruitmentPage = () => {
   );
 };
 
-export default HrRecruitmentPage;
+export default HrPerformancePage;

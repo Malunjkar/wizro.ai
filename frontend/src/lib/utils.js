@@ -3,33 +3,9 @@ import { twMerge } from 'tailwind-merge';
 
 export const cn = (...inputs) => twMerge(clsx(inputs));
 
-export const SetLocalStorage = (values) => {
-  localStorage.setItem('token', values.token);
-  localStorage.setItem('fullName', values.fullName);
-  localStorage.setItem('role', values.role);
-  localStorage.setItem('email', values.email);
-  localStorage.setItem('empID', values.empID);
-};
-
-export const GetLocalStorage = () => {
-  const token = localStorage.getItem('token'),
-    fullName = localStorage.getItem('fullName'),
-    role = localStorage.getItem('role'),
-    email = localStorage.getItem('email');
-
-  if (!token || !fullName || !role || !email) {
-    return { token: null, userInfo: null };
-  }
-
-  return { token, userInfo: { fullName, role, email } };
-};
-
-export const ClearLocalStorage = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('fullName');
-  localStorage.removeItem('role');
-  localStorage.removeItem('email');
-};
+export const SetLocalStorage = () => {};
+export const GetLocalStorage = () => ({ token: null, userInfo: null });
+export const ClearLocalStorage = () => {};
 
 export const formatDate = (dateString) =>
   new Date(dateString).toLocaleDateString('en-US', {

@@ -62,7 +62,7 @@ const UmLayout = () => {
 
             {/* User avatar */}
             <div className="w-8 h-8 bg-[var(--color-chart-4)] rounded-full flex items-center justify-center font-medium text-sm text-white">
-              N
+              S
             </div>
           </div>
         </div>

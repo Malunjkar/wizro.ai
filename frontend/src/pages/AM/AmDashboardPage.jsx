@@ -1,378 +1,437 @@
+import { Calendar, MapPin, ChevronDown, Clock, CalendarCheck, TrendingUp, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  FolderGit2,
-  ChevronDown,
-  CircleCheckBig,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Users,
-  TrendingUp,
-  TrendingDown,
-  Target,
-} from 'lucide-react';
-import React, { useState } from 'react';
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+} from 'recharts';
+import { toast } from 'sonner';
 
-import PageHeader from '@/components/layout/PageHeader';
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/context/AuthContext';
+import axiosInstance from '@/lib/axiosConfig';
+
+import { formatDate } from '../../lib/utils';
 
 export default function AmDashboardPage() {
-  const stats = [
-    {
-      title: 'Total Tasks',
-      value: '142',
-      change: '+12%',
-      trend: 'up',
-      icon: Target,
-      color: 'text-blue-400',
-    },
-    {
-      title: 'Completed',
-      value: '89',
-      change: '+8%',
-      trend: 'up',
-      icon: CheckCircle2,
-      color: 'text-green-400',
-    },
-    {
-      title: 'In Progress',
-      value: '35',
-      change: '-3%',
-      trend: 'down',
-      icon: Clock,
-      color: 'text-yellow-400',
-    },
-    {
-      title: 'Overdue',
-      value: '18',
-      change: '+5%',
-      trend: 'up',
-      icon: AlertCircle,
-      color: 'text-red-400',
-    },
-  ];
+  const { user } = useAuth();
 
-  const recentTasks = [
-    {
-      id: 1,
-      title: 'Design system updates',
-      project: 'Design',
-      status: 'In Progress',
-      priority: 'High',
-      assignee: 'N',
-      time: '2h 30m',
-    },
-    {
-      id: 2,
-      title: 'API integration',
-      project: 'Backend',
-      status: 'To Do',
-      priority: 'Medium',
-      assignee: 'J',
-      time: '0h 45m',
-    },
-    {
-      id: 3,
-      title: 'User testing session',
-      project: 'Research',
-      status: 'Completed',
-      priority: 'High',
-      assignee: 'M',
-      time: '4h 15m',
-    },
-    {
-      id: 4,
-      title: 'User testing',
-      project: 'Research',
-      status: 'Completed',
-      priority: 'Low',
-      assignee: 'N',
-      time: '6h 15m',
-    },
-  ];
+  const userId = user?.empID;
 
-  const projects = [
-    { name: 'Design System', progress: 85, tasks: 24, color: 'bg-blue-500' },
-    { name: 'Mobile App', progress: 65, tasks: 18, color: 'bg-purple-500' },
-    { name: 'API Development', progress: 92, tasks: 31, color: 'bg-green-500' },
-    { name: 'User Research', progress: 45, tasks: 12, color: 'bg-yellow-500' },
-  ];
-
-  const teamMembers = [
-    { name: 'Nazneen Pinjari', avatar: 'N', tasks: 8, completed: 5 },
-    { name: 'John Doe', avatar: 'J', tasks: 12, completed: 9 },
-    { name: 'Maria Smith', avatar: 'M', tasks: 6, completed: 6 },
-    { name: 'Alex Chen', avatar: 'A', tasks: 10, completed: 7 },
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-[var(--color-chart-2)]';
-      case 'In Progress':
-        return 'bg-[var(--color-chart-4)]';
-      case 'To Do':
-        return 'bg-[var(--color-muted)]';
-      default:
-        return 'bg-[var(--color-muted)]';
+  const toHours = (timeStr) => {
+    if (!timeStr) {
+      return 0;
     }
+    const [hrs, min, sec] = timeStr.split(':').map(Number);
+
+    return hrs + min / 60 + (sec || 0) / 3600;
   };
 
-  const [profileId, setProfileId] = useState(null);
+  const [attendanceData, setAttendanceData] = useState([]);
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High':
-        return 'text-red-400';
-      case 'Medium':
-        return 'text-yellow-400';
-      case 'Low':
-        return 'text-green-400';
-      default:
-        return 'text-slate-400';
+  const [activeRange, setActiveRange] = useState('30');
+
+  const [selectedLocation, setSelectedLocation] = useState('All Locations');
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const [attendanceGraphData, setAttendanceGraphData] = useState([]);
+
+  const ranges = [
+    { label: 'Last 7 Days', value: '7' },
+    { label: 'Last 14 Days', value: '14' },
+    { label: 'Last 30 Days', value: '30' },
+  ];
+
+  const fetchAttendanceData = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get(`am/get/${userId}`);
+
+      setAttendanceData(response.data || []);
+    } catch {
+      toast.error('Failed to fetch attendance data');
     }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchAttendanceData();
+  }, [fetchAttendanceData]);
+
+  // ----- Filter by Date Range -----
+  const filteredByDate = useMemo(() => {
+    const days = parseInt(activeRange, 10);
+
+    const today = new Date();
+
+    return attendanceData.filter((rec) => {
+      const recordDate = new Date(rec.attendance_date);
+
+      const diff = (today - recordDate) / (1000 * 60 * 60 * 24);
+
+      return diff < days;
+    });
+  }, [attendanceData, activeRange]);
+
+  // ----- Filter by Location -----
+  const filteredAttendance = useMemo(() => {
+    if (selectedLocation === 'All Locations') {
+      return filteredByDate;
+    }
+
+    return filteredByDate.filter((rec) => {
+      const location = rec.work_location?.toLowerCase() || '';
+
+      if (selectedLocation.toLowerCase() === 'office') {
+        return location === 'office';
+      }
+      if (selectedLocation.toLowerCase() === 'client') {
+        return location === 'client';
+      }
+      if (selectedLocation.toLowerCase() === 'work from home') {
+        return location === 'wfh';
+      }
+
+      return null;
+    });
+  }, [filteredByDate, selectedLocation]);
+
+  // ----- Stats Calculation -----
+  const calculateAttendanceStats = (data) => {
+    if (!data || data.length === 0) {
+      return {
+        punctualityRate: '0.0',
+        avgDailyWorkHours: '0.0',
+        consistencyIndex: '0.0',
+        stabilityRate: '0.0',
+      };
+    }
+
+    let totalHours = 0,
+      workingHourDays = 0,
+      onTimeCount = 0,
+      presentOrWorkedDays = 0,
+      fullWorkDays = 0;
+
+    data.forEach((rec) => {
+      const isFullDay = toHours(rec.total_hours) >= 8;
+
+      const statusPresent =
+        rec.status_name === 'Present' || rec.status_name === 'Late' || rec.status_name === 'Half Day';
+
+      if (rec.check_in_time !== null) {
+        const [hrs, min, sec] = rec.check_in_time.split(':').map(Number);
+
+        const checkIn = new Date();
+
+        checkIn.setHours(hrs, min, sec, 0);
+
+        const threshold = new Date();
+
+        threshold.setHours(10, 30, 0, 0);
+
+        if (checkIn <= threshold) {
+          onTimeCount++;
+        }
+      }
+
+      if (rec.total_hours && rec.total_hours !== '00:00:00') {
+        totalHours += toHours(rec.total_hours);
+        workingHourDays++;
+      }
+
+      if (statusPresent) {
+        presentOrWorkedDays++;
+      }
+
+      if (isFullDay) {
+        fullWorkDays++;
+      }
+    });
+
+    const totalDays = data.length;
+
+    return {
+      punctualityRate: ((onTimeCount / totalDays) * 100 || 0).toFixed(1),
+      avgDailyWorkHours: (workingHourDays > 0 ? totalHours / workingHourDays : 0).toFixed(1),
+      consistencyIndex: ((presentOrWorkedDays / totalDays) * 10 || 0).toFixed(1),
+      stabilityRate: ((fullWorkDays / totalDays) * 100 || 0).toFixed(1),
+    };
   };
 
-  const [filter, setFilter] = useState('User Filter');
+  const { punctualityRate, avgDailyWorkHours, consistencyIndex, stabilityRate } =
+    calculateAttendanceStats(filteredAttendance);
 
-  const options = [
-    { value: 0, label: 'All' },
-    { value: 1, label: 'Faisal Ali' },
-    { value: 2, label: 'Nazneen Pinjari' },
-  ];
+  // ----- Weekly Hours Chart -----
+  const last7DaysData = useMemo(() => {
+    if (!filteredAttendance || filteredAttendance.length === 0) {
+      return [];
+    }
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const today = new Date();
+
+    const currentDay = today.getDay();
+
+    const monday = new Date(today);
+
+    monday.setDate(today.getDate() - ((currentDay + 6) % 7));
+
+    const weekDays = [];
+
+    for (let i = 0; i < 6; i++) {
+      // Only Mon–Sat
+      const day = new Date(monday);
+
+      day.setDate(monday.getDate() + i);
+      weekDays.push(day);
+    }
+
+    return weekDays.map((day) => {
+      const record = filteredAttendance.find(
+        (rec) => new Date(rec.attendance_date).toDateString() === day.toDateString(),
+      );
+
+      return {
+        day: dayNames[day.getDay()],
+        hours: record?.total_hours ? parseFloat(toHours(record.total_hours).toFixed(1)) : 0,
+      };
+    });
+  }, [filteredAttendance]);
+
+  // ----- Attendance Split Chart -----
+  const attendanceSplit = useMemo(() => {
+    const total = filteredAttendance.length || 1;
+
+    const presentCount = filteredAttendance.filter((rec) => rec.status_name?.toLowerCase() === 'present').length;
+
+    const halfDayCount = filteredAttendance.filter((rec) => rec.status_name?.toLowerCase() === 'half day').length;
+
+    const absentCount = filteredAttendance.filter((rec) => rec.status_name?.toLowerCase() === 'absent').length;
+
+    return [
+      { name: `Present (${((presentCount / total) * 100).toFixed(0)}%)`, value: presentCount, color: '#4285F4' },
+      { name: `Late/Half Day (${((halfDayCount / total) * 100).toFixed(0)}%)`, value: halfDayCount, color: '#F4B400' },
+      { name: `Absent (${((absentCount / total) * 100).toFixed(0)}%)`, value: absentCount, color: '#DB4437' },
+    ];
+  }, [filteredAttendance]);
+
+  // ----- Attendance Rate Graph Data -----
+  const calculateAttendanceRateGraph = (data) => {
+    if (!data || data.length === 0) {
+      return [];
+    }
+    const xAxisDates = [5, 10, 15, 20, 25, 30];
+
+    return xAxisDates.map((day) => {
+      const recordsTillDay = data.filter((rec) => new Date(rec.attendance_date).getDate() <= day);
+
+      const totalDays = recordsTillDay.length;
+
+      const presentDays = recordsTillDay.filter((rec) => rec.status_name === 'Present').length;
+
+      const attendanceRate = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+
+      return {
+        day,
+        rate: Number(attendanceRate),
+      };
+    });
+  };
+
+  useEffect(() => {
+    const formattedData = calculateAttendanceRateGraph(attendanceData);
+
+    setAttendanceGraphData(formattedData);
+  }, [attendanceData]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
-      <div className="p-6">
-        <PageHeader
-          title={'Dashboard'}
-          subTitle={'Track your progress and manage your tasks'}
-          actions={
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)]">
-                  {filter} <ChevronDown className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
+    <div className="w-full px-6 mt-8">
+      {/* Title */}
+      <div className="w-full bg-white p2 space-y-6">
+        {/* Heading Section */}
+        <h1 className="text-3xl font-semibold text-gray-800 tracking-tight">Attendance Dashboard</h1>
+        <p className="text-gray-500 text-sm">Monitor and analyze attendance trends across your organization</p>
 
-              <DropdownMenuContent className="min-w-2 p-0">
-                {options.map((option) => (
-                  <DropdownMenuItem key={option.value} onClick={() => setFilter(option.label)}>
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
+        {/* Filters Section */}
+        <div className="bg-gray-50 border rounded-xl p-4 flex flex-wrap items-center gap-4">
+          <span className="text-gray-700 font-medium">Quick Range:</span>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
+          {ranges.map((range) => (
+            <button
+              key={range.value}
+              onClick={() => setActiveRange(range.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeRange === range.value
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white border text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
 
-            const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown;
-
-            return (
-              <Card key={index} className="bg-[var(--color-card)] border-[var(--color-border)]">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[var(--color-muted-foreground)] text-sm font-medium">{stat.title}</p>
-                      <p className="text-3xl text-[var(--color-foreground)] font-bold mt-2">{stat.value}</p>
-                      <div
-                        className={`flex items-center mt-2 text-sm ${
-                          stat.trend === 'up' ? 'text-[var(--color-chart-2)]' : 'text-[var(--color-destructive)]'
-                        }`}
-                      >
-                        <TrendIcon className="w-4 h-4 mr-1" />
-                        {stat.change}
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-full bg-[var(--color-muted)]">
-                      <Icon className="w-6 h-6 text-[var(--color-foreground)]" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Tasks and Team Performance */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Recent Tasks */}
-          <div className="col-span-6">
-            <Card className="bg-[var(--color-card)] border-[var(--color-border)] h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex text-[var(--color-foreground)] items-center">
-                  <CircleCheckBig className="w-5 h-5 mr-2" />
-                  Recent Tasks
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="space-y-4">
-                  {recentTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center space-x-4 p-3 rounded-lg bg-[var(--color-muted)] transition-colors"
-                    >
-                      <div className="w-2 h-2 bg-[var(--color-chart-2)] rounded-full"></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[var(--color-foreground)] font-medium truncate">{task.title}</p>
-                        <p className="text-[var(--color-muted-foreground)] text-sm">{task.project}</p>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <Badge
-                          className={`${getStatusColor(
-                            task.status,
-                          )} text-[var(--color-primary-foreground)] text-xs min-w-[80px] text-start`}
-                        >
-                          {task.status}
-                        </Badge>
-                        <span
-                          className={`text-sm font-medium ${getPriorityColor(task.priority)} min-w-[60px] text-start`}
-                        >
-                          {task.priority}
-                        </span>
-
-                        <Popover
-                          key={task.id}
-                          open={profileId === task.id}
-                          onOpenChange={(isOpen) => setProfileId(isOpen ? task.id : null)}
-                        >
-                          <PopoverTrigger asChild>
-                            <div
-                              className="cursor-pointer"
-                              onMouseEnter={() => setProfileId(task.id)}
-                              onMouseLeave={() => setProfileId(null)}
-                            >
-                              <Avatar className="w-10 h-10 rounded-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-2 border-[var(--color-ring)] flex items-center justify-center">
-                                <span>{task.assignee}</span>
-                              </Avatar>
-                            </div>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="start"
-                            side="bottom"
-                            className="w-64 p-4 bg-[var(--color-popover)] text-[var(--color-popover-foreground)]"
-                            onMouseEnter={() => setProfileId(task.id)}
-                            onMouseLeave={() => setProfileId(null)}
-                          >
-                            <div className="flex items-center gap-4">
-                              <Avatar className="w-10 h-10 rounded-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-2 border-[var(--color-ring)] flex items-center justify-center">
-                                <span>{task.assignee}</span>
-                              </Avatar>
-                              <div>
-                                <h4 className="font-medium">Nazneen</h4>
-                                <p className="text-sm text-[var(--color-muted-foreground)]">FullStack Developer</p>
-                              </div>
-                            </div>
-                            <div className="mt-4">
-                              <p className="text-sm">Email: Nazneen.Rauf@kosqu.com</p>
-                              <p className="text-sm">Phone No: 7385747394</p>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          {/* Current Date */}
+          <div className="flex items-center gap-2 bg-white border px-4 py-2 rounded-lg text-gray-700">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span className="text-sm">{formatDate(new Date())}</span>
           </div>
 
-          {/* Team Performance */}
-          <div className="col-span-6">
-            <Card className="bg-[var(--color-card)] border-[var(--color-border)] h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex text-[var(--color-foreground)] items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  Team Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="space-y-4">
-                  {teamMembers.map((member, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between space-x-4 p-3 rounded-lg bg-[var(--color-muted)] transition-colors"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-8 h-8 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-sm font-medium text-[var(--color-primary-foreground)]">
-                          {member.avatar}
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-foreground)] text-sm font-medium">{member.name}</p>
-                          <p className="text-[var(--color-muted-foreground)] text-xs">
-                            {member.completed}/{member.tasks} completed
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <Progress
-                            value={(member.completed / member.tasks) * 100}
-                            className="w-32 h-2 rounded-full border border-[var(--color-ring)] bg-[var(--color-muted)] [&>div]:bg-[var(--color-chart-2)]"
-                          />
-                          <span className="text-sm text-[var(--color-foreground)] font-medium">
-                            {Math.round((member.completed / member.tasks) * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          {/* Location Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 bg-white border px-4 py-2 rounded-lg text-gray-700 text-sm hover:bg-gray-100 transition-all duration-200"
+            >
+              <MapPin className="w-4 h-4 text-gray-500" />
+              <span>{selectedLocation}</span>
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            </button>
 
-        {/* Project Progression */}
-        <div className="mt-8">
-          <Card className="bg-[var(--color-card)] border-[var(--color-border)]">
-            <CardHeader>
-              <CardTitle className="flex text-[var(--color-foreground)] items-center">
-                <FolderGit2 className="w-5 h-5 mr-2" />
-                Project Progression
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {projects.map((project, index) => (
-                  <div key={index} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-[var(--color-foreground)]">{project.name}</h3>
-                      <span className="text-[var(--color-muted-foreground)] text-sm">{project.tasks} tasks</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--color-muted-foreground)]">Progress</span>
-                        <span className="text-[var(--color-foreground)]">{project.progress}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-[var(--color-muted)] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${project.color} rounded-full transition-all duration-300`}
-                          style={{ width: `${project.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
+            {dropdownOpen && (
+              <div className="absolute mt-2 w-48 bg-white shadow-lg border rounded-lg overflow-hidden">
+                {['All Locations', 'Office', 'Client', 'Work From Home'].map((loc) => (
+                  <button
+                    key={loc}
+                    onClick={() => {
+                      setSelectedLocation(loc);
+                      setDropdownOpen(false);
+                    }}
+                    className="px-4 py-2 w-full text-left text-sm hover:bg-gray-100 transition"
+                  >
+                    {loc}
+                  </button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        {/* Punctuality Rate */}
+        <div className="bg-white shadow rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-blue-100 p-3 rounded-full">
+            <Clock className="w-6 hrs-6 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-gray-500 text-sm">Punctuality Rate</p>
+            <p className="text-3xl font-semibold">{punctualityRate}%</p>
+          </div>
+        </div>
+
+        {/* Avg. Daily Work Hours */}
+        <div className="bg-white shadow rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-green-100 p-3 rounded-full">
+            <CalendarCheck className="w-6 hrs-6 text-green-600" />
+          </div>
+          <div>
+            <p className="text-gray-500 text-sm">Avg. Daily Work Hours</p>
+            <p className="text-3xl font-semibold">{avgDailyWorkHours} hrs</p>
+          </div>
+        </div>
+
+        {/* Consistency Index */}
+        <div className="bg-white shadow rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-purple-100 p-3 rounded-full">
+            <TrendingUp className="w-6 hrs-6 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-gray-500 text-sm">Consistency Index</p>
+            <p className="text-3xl font-semibold">{consistencyIndex}</p>
+          </div>
+        </div>
+
+        {/* High Stability */}
+        <div className="bg-white shadow rounded-xl p-5 flex items-center gap-4">
+          <div className="bg-yellow-100 p-3 rounded-full">
+            <ShieldCheck className="w-6 hrs-6 text-yellow-600" />
+          </div>
+          <div>
+            <p className="text-gray-500 text-sm">High Stability</p>
+            <p className="text-3xl font-semibold">{stabilityRate}%</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {/* Weekly Work Hours Chart */}
+        <div className="bg-white shadow-md rounded-2xl p-5">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">Weekly Working Hours (Mon–Sat)</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={last7DaysData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="hours" fill="#5c5cf0ff" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Attendance Split */}
+        <div className="bg-white shadow-md rounded-2xl p-5">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">Attendance Split</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={attendanceSplit}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={4}
+                label
+              >
+                {attendanceSplit.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white shadow-md rounded-2xl p-5 mt-8">
+        <h2 className="text-lg font-semibold mb-4 text-gray-700">Attendance Rate – Last 30 Days</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={attendanceGraphData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="attendanceFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="20%" stopColor="#6366F1" stopOpacity={0.4} />
+                <stop offset="80%" stopColor="#6366F1" stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+
+            {/* X-axis = 5,10,15,20,25,30 */}
+            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+
+            {/* Y-axis = 0,25,50,75,100 */}
+            <YAxis ticks={[0, 25, 50, 75, 100]} domain={[0, 100]} tick={{ fontSize: 12 }} />
+
+            <Tooltip formatter={(value) => [`${value}%`, 'Attendance Rate']} />
+
+            <Area
+              type="monotone"
+              dataKey="rate"
+              stroke="#6366F1"
+              strokeWidth={3}
+              fill="url(#attendanceFill)"
+              dot={{ rec: 4 }}
+              activeDot={{ rec: 6 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
