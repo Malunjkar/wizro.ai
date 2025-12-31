@@ -3,6 +3,12 @@ import { toast } from 'sonner';
 
 import axiosInstance, { setAccessToken } from '@/lib/axiosConfig';
 
+const ROLE = {
+  ADMIN: 1,
+  HR: 4,
+};
+
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -21,6 +27,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // ================= ROLE HELPERS =================
+  const isAdmin = () => user?.role === ROLE.ADMIN;
+  const isHR = () => user?.role === ROLE.HR;
+  const isUser = () => !['ADMIN', 'HR'].includes(user?.role);
+
+  const hasAccess = (allowedRoles = []) => {
+    if (!user) return false;
+    return allowedRoles.includes(user.role);
+  };
+
 
   // AUTO LOGIN ON PAGE REFRESH (using refresh cookie)
   const tryAutoLogin = async () => {
@@ -253,16 +270,25 @@ const getHrNavigationItems = () =>
     user,
     loading,
     isAuthenticated,
+
+    // auth actions
     login,
-    register,
     logout,
-    hasPermission,
-    getPmNavigationItems,
-    getHrNavigationItems,
+    register,
+
+    // role helpers
+    isAdmin,
+    isHR,
+    isUser,
+    hasAccess,
+
+    // navigation
     getTmNavigationItems,
-    getAmNavigationItems,
+    getHrNavigationItems,
+    getPmNavigationItems,
     getUmNavigationItems,
   };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

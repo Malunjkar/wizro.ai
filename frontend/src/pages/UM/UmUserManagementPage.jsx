@@ -1,3 +1,4 @@
+import { useAuth } from "@/context/AuthContext";
 import { Plus, Pencil, Trash2, Settings } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 export default function UmUserManagementPage() {
+  const { isAdmin, isHR } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -247,29 +249,43 @@ export default function UmUserManagementPage() {
     setIsOpen(true);
   };
 
+    if (!isAdmin() && !isHR()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h2 className="text-xl font-semibold text-red-600">
+          Access Denied
+        </h2>
+      </div>
+    );
+  }
+
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Team Members</h2>
 
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => {
-              setForm({
-                n_user_id: null,
-                s_full_name: "",
-                s_email: "",
-                s_role: "",
-                d_joining_date: "",
-              });
-              setIsEdit(false);
-              setIsOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add User
-          </Button>
+          {(isAdmin() || isHR()) && (
+            <Button
+              onClick={() => {
+                setForm({
+                  n_user_id: null,
+                  s_full_name: "",
+                  s_email: "",
+                  s_role: "",
+                  d_joining_date: "",
+                });
+                setIsEdit(false);
+                setIsOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add User
+            </Button>
+          )}
 
+          {(isAdmin() || isHR()) && (
           <Button 
             variant="outline" 
             onClick={() => {
@@ -280,6 +296,7 @@ export default function UmUserManagementPage() {
             <Settings className="w-4 h-4 mr-1" />
             Manage Roles
           </Button>
+          )}
         </div>
       </div>
 
@@ -310,9 +327,11 @@ export default function UmUserManagementPage() {
               <Badge className="bg-green-500 text-white">Active</Badge>
             </div>
             <div className="flex gap-2">
+              {(isAdmin() || isHR()) && (
               <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
                 <Pencil size={16} />
               </Button>
+              )}
               <Button
                 size="sm"
                 variant="destructive"
