@@ -32,17 +32,17 @@ const signRefresh = (payload) =>
 //   }
 // };
 
-const deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const query = userSqlc.deleteUser(id);
-    await dbqueryexecute.executeSelectObj(query);
-    res.json({ message: 'User deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete user' });
-  }
-};
+// const deleteUser = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const query = userSqlc.deleteUser(id);
+//     await dbqueryexecute.executeSelectObj(query, pool);
+//     res.json({ message: 'User deleted successfully' });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: 'Failed to delete user' });
+//   }
+// };
 
 export default {
   // getUsers,
@@ -250,94 +250,142 @@ export default {
       return res.status(500).json({ message: 'Logout failed', err });
     }
   },
+
+// ==================== USER MANAGEMENT ====================
+  async getUsers(req, res) {
+    try {      
+      const query = userSqlc.getAllUsers();      
+      const result = await dbqueryexecute.executeSelectObj(query, pool);
+      
+
+      res.status(200).json(Array.isArray(result) ? result : []);
+    } catch (err) {
+      console.error('❌ GET USERS ERROR:', err);
+      console.error('❌ Error Stack:', err.stack);
+      console.error('❌ Error Message:', err.message);
+      res.status(500).json({ 
+        error: 'Failed to fetch users',
+        details: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      });
+    }
+  },
+
   async createUser(req, res) {
     try {
-      const { s_full_name, s_email, s_role, d_joining_date } = req.body;
+      const { s_full_name, s_email, s_password, n_role, d_joining_date } = req.body;
 
-      // 🔒 Basic validation
-      if (!s_full_name || !s_email || !s_role || !d_joining_date) {
+      console.log('📝 CREATE USER Request:', { s_full_name, s_email, n_role, d_joining_date});
+
+      // Validation
+      if (!s_full_name || !s_email || !s_password || !n_role ||!d_joining_date) {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
-      // Build SQL query
+      // Check duplicate email
+      const duplicate = await dbqueryexecute.executeSelectObj(
+        userSqlc.getDuplicate({ email: s_email }),
+        pool
+      );
+
+      if (duplicate.length > 0) {
+        return res.status(409).json({ error: 'Email already exists' });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(s_password, 10);
+
       const query = userSqlc.createUser({
         s_full_name,
         s_email,
-        s_role,
+        s_password: hashedPassword,
+        n_role: parseInt(n_role),
         d_joining_date,
       });
 
-      // 🔥 IMPORTANT: pass pool as 2nd argument
+      console.log('🔍 CREATE Query:', query);
+
       const result = await dbqueryexecute.executeSelectObj(query, pool);
 
-      res.status(201).json({
-        message: 'User created successfully',
-        data: result,
-      });
-    } catch (err) {
-      console.error('CREATE USER ERROR:', err);
-      res.status(500).json({ error: 'Failed to create user' });
-    }
-  },
-  async getUsers(req, res) {
-    try {
-      const result = await dbqueryexecute.executeSelectObj(
-        userSqlc.getAllUsers(),
-        pool,
-      );
+      console.log('✅ CREATE Result:', result);
 
-      res.status(200).json(result); // <-- VERY IMPORTANT
+      res.status(201).json(result[0] || result);
     } catch (err) {
-      console.error('GET USERS ERROR:', err);
-      res.status(500).json({ error: 'Failed to fetch users' });
+      console.error('❌ CREATE USER ERROR:', err);
+      console.error('❌ Error Details:', err.message);
+      res.status(500).json({ 
+        error: 'Failed to create user',
+        details: err.message 
+      });
     }
   },
-  async updateUserDetails(req, res) {
+
+  async updateUser(req, res) {
     try {
-      const { n_user_id, s_full_name, s_email, s_role, d_joining_date } =
-        req.body;
+      const { n_user_id, s_full_name, s_email, n_role, d_joining_date } = req.body;
+
+      console.log('📝 UPDATE USER Request:', { n_user_id, s_full_name, s_email, n_role,d_joining_date });
 
       if (!n_user_id) {
-        return res.status(400).json({ error: 'User ID is required' });
+        return res.status(400).json({ error: 'User ID required' });
       }
 
-      const query = userSqlc.updateUserDetails({
-        n_user_id,
+      // Check if email is being changed to existing email
+      if (s_email) {
+        const duplicate = await dbqueryexecute.executeSelectObj(
+          {
+            queryString: 'SELECT n_user_id FROM tbl_users WHERE s_email = $1 AND n_user_id != $2',
+            arr: [s_email, n_user_id]
+          },
+          pool
+        );
+
+        if (duplicate.length > 0) {
+          return res.status(409).json({ error: 'Email already exists' });
+        }
+      }
+
+      const query = userSqlc.updateUser({
+        n_user_id: parseInt(n_user_id),
         s_full_name,
         s_email,
-        s_role,
+        n_role: parseInt(n_role),
         d_joining_date,
       });
 
+      console.log('🔍 UPDATE Query:', query);
+
       const result = await dbqueryexecute.executeSelectObj(query, pool);
 
-      res.status(200).json({
-        message: 'User updated successfully',
-        data: result,
+      console.log('✅ UPDATE Result:', result);
+
+      res.status(200).json(result[0] || result);
+    } catch (err) {
+      console.error('❌ UPDATE USER ERROR:', err);
+      console.error('❌ Error Stack:', err.stack);
+      console.error('❌ Error Message:', err.message);
+      res.status(500).json({ 
+        error: 'Failed to update user',
+        details: err.message 
       });
-    } catch (error) {
-      console.error('UPDATE USER ERROR:', error);
-      res.status(500).json({ error: 'Failed to update user' });
     }
   },
-  async deleteUser(req, res) {
+
+async deleteUsers(req, res) {
     try {
       const { id } = req.params;
-
       if (!id) {
-        return res.status(400).json({ error: 'User ID is required' });
+        return res.status(400).json({ error: 'user ID is required' });
       }
-
-      const query = userSqlc.deleteUserById({ n_user_id: id });
-
+      const query = userSqlc.deleteUsers({ n_user_id: id });
       await dbqueryexecute.executeSelectObj(query, pool);
-
-      res.status(200).json({ message: 'User deleted successfully' });
-    } catch (error) {
-      console.error('DELETE USER ERROR:', error);
+      res.status(200).json({ message: 'user deleted successfully' });
+    } catch (err) {
+      console.error('DELETE user ERROR:', err);
       res.status(500).json({ error: 'Failed to delete user' });
     }
   },
+
 
   async createRole(req, res) {
     try {

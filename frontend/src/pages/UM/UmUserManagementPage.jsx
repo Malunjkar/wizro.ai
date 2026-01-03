@@ -3,171 +3,67 @@ import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+
+const API_BASE = 'http://localhost:5000/user';
 
 export default function UmUserManagementPage() {
   const { isAdmin, isHR } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [isManageRolesOpen, setIsManageRolesOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
   const [deleteRoleId, setDeleteRoleId] = useState(null);
   const [newRoleInManage, setNewRoleInManage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [form, setForm] = useState({
     n_user_id: null,
     s_full_name: '',
     s_email: '',
-    s_role: '',
+    s_password: '',
+    n_role: '',
     d_joining_date: '',
   });
 
+  /* ---------------- FETCH ---------------- */
+
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/user/getAll');
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/getAll`);
       const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
+      setUsers(Array.isArray(data) ? data : []);
+      setError(null);
+    } catch (err) {
+      console.error('Fetch users error:', err);
+      setError('Failed to load users');
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchRoles = async () => {
     try {
-      const res = await fetch('http://localhost:5000/user/role/getAll');
+      const res = await fetch(`${API_BASE}/role/getAll`);
       const data = await res.json();
       setRoles(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching roles:', error);
+    } catch (err) {
+      console.error('Fetch roles error:', err);
       setRoles([]);
-    }
-  };
-
-  const handleAddRole = async () => {
-    if (!roleForm.s_role_name.trim()) {
-      alert('Role name is required');
-      return;
-    }
-
-    try {
-      const res = await fetch('http://localhost:5000/user/role/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          s_role_name: roleForm.s_role_name,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || 'Failed to add role');
-        return;
-      }
-
-      setRoleForm({ s_role_name: '' });
-      setIsRoleOpen(false);
-      alert('Role added successfully');
-      fetchRoles();
-    } catch (error) {
-      console.error('Error adding role:', error);
-      alert('Error adding role');
-    }
-  };
-
-  const handleUpdateRole = async () => {
-    if (!editingRole || !editingRole.s_role_name.trim()) {
-      alert('Role name is required');
-      return;
-    }
-
-    try {
-      const res = await fetch('http://localhost:5000/user/role/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          n_id: editingRole.n_id,
-          s_role_name: editingRole.s_role_name,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || 'Failed to update role');
-        return;
-      }
-
-      setEditingRole(null);
-      alert('Role updated successfully');
-      fetchRoles();
-      fetchUsers(); // Refresh users to show updated role names
-    } catch (error) {
-      console.error('Error updating role:', error);
-      alert('Error updating role');
-    }
-  };
-
-  const handleAddRoleInManage = async () => {
-    if (!newRoleInManage.trim()) {
-      alert('Role name is required');
-      return;
-    }
-
-    try {
-      const res = await fetch('http://localhost:5000/user/role/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          s_role_name: newRoleInManage,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || 'Failed to add role');
-        return;
-      }
-
-      setNewRoleInManage('');
-      alert('Role added successfully');
-      fetchRoles();
-    } catch (error) {
-      console.error('Error adding role:', error);
-      alert('Error adding role');
-    }
-  };
-
-  const handleDeleteRole = async (roleId) => {
-    try {
-      const res = await fetch(`http://localhost:5000/user/role/delete/${roleId}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete role');
-        return;
-      }
-
-      setDeleteRoleId(null);
-      alert('Role deleted successfully');
-      fetchRoles();
-    } catch (error) {
-      console.error('Error deleting role:', error);
-      alert('Error deleting role');
     }
   };
 
@@ -176,86 +72,188 @@ export default function UmUserManagementPage() {
     fetchRoles();
   }, []);
 
+  /* ---------------- USER CRUD ---------------- */
+
+  const resetForm = () => {
+    setForm({
+      n_user_id: null,
+      s_full_name: '',
+      s_email: '',
+      s_password: '',
+      n_role: '',
+      d_joining_date: '',
+    });
+    setIsEdit(false);
+  };
+
   const saveUser = async () => {
-    const url = isEdit ? 'http://localhost:5000/user/update' : 'http://localhost:5000/user/create';
-
-    const method = isEdit ? 'PUT' : 'POST';
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          n_user_id: form.n_user_id,
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || 'Failed to save user');
+      // Validation
+      if (!form.s_full_name || !form.s_email || !form.n_role) {
+        alert('Please fill all required fields');
         return;
       }
 
-      setIsOpen(false);
-      setIsEdit(false);
-      setForm({
-        n_user_id: null,
-        s_full_name: '',
-        s_email: '',
-        s_role: '',
-        d_joining_date: '',
+      if (!isEdit && !form.s_password) {
+        alert('Password is required for new users');
+        return;
+      }
+
+      const url = isEdit ? `${API_BASE}/update` : `${API_BASE}/create`;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      // Prepare payload
+      const payload = {
+        s_full_name: form.s_full_name,
+        s_email: form.s_email,
+        n_role: parseInt(form.n_role),
+        d_joining_date: form.d_joining_date || null,
+      };
+
+
+      if (isEdit) {
+        payload.n_user_id = form.n_user_id;
+      } else {
+        payload.s_password = form.s_password;
+      }
+
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
+
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'Failed to save user');
+      }
+
+      setIsOpen(false);
+      resetForm();
       fetchUsers();
-    } catch (error) {
-      console.error('Error saving user:', error);
-      alert('Error saving user');
+      
+      alert(isEdit ? 'User updated successfully' : 'User created successfully');
+    } catch (err) {
+      console.error('Save user error:', err);
+      alert(err.message || 'Failed to save user');
     }
   };
 
-  const deleteUser = async (id) => {
+  const deleteUsers = async (id) => {
     try {
-      await fetch(`http://localhost:5000/user/delete/${id}`, {
+      const response = await fetch(`${API_BASE}/delete/${id}`, {
         method: 'DELETE',
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      setDeleteId(null);
       fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
+      alert('User deleted successfully');
+    } catch (err) {
+      console.error('Delete user error:', err);
+      alert('Failed to delete user');
     }
   };
 
   const openEdit = (user) => {
-    // Helper function to format date correctly without timezone issues
-    const formatDateForInput = (dateString) => {
-      if (!dateString) return '';
-
-      // Split the date string directly if it's in YYYY-MM-DD format
-      if (typeof dateString === 'string' && dateString.includes('-')) {
-        const datePart = dateString.split('T')[0]; // Get only date part, ignore time
-        return datePart; // Returns YYYY-MM-DD
-      }
-
-      // Fallback for other formats
-      const date = new Date(dateString);
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(date.getUTCDate()).padStart(2, '0');
-
-      return `${year}-${month}-${day}`;
-    };
-
     setForm({
       n_user_id: user.n_user_id,
-      s_full_name: user.s_full_name || '',
-      s_email: user.s_email || '',
-      s_role: user.s_role || '',
-      d_joining_date: formatDateForInput(user.d_joining_date),
+      s_full_name: user.s_full_name,
+      s_email: user.s_email,
+      s_password: '', // Don't populate password
+      n_role: user.n_role,
+      d_joining_date: user.d_joining_date?.split('T')[0] || '',
     });
-
     setIsEdit(true);
     setIsOpen(true);
   };
+
+  const openCreate = () => {
+    resetForm();
+    setIsOpen(true);
+  };
+
+  /* ---------------- ROLE CRUD ---------------- */
+
+  const handleAddRoleInManage = async () => {
+    if (!newRoleInManage.trim()) {
+      alert('Role name cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/role/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ s_role_name: newRoleInManage.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create role');
+      }
+
+      setNewRoleInManage('');
+      fetchRoles();
+      alert('Role created successfully');
+    } catch (err) {
+      console.error('Create role error:', err);
+      alert('Failed to create role');
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingRole.s_role_name.trim()) {
+      alert('Role name cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/role/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingRole),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update role');
+      }
+
+      setEditingRole(null);
+      fetchRoles();
+      fetchUsers(); // Refresh users to show updated role names
+      alert('Role updated successfully');
+    } catch (err) {
+      console.error('Update role error:', err);
+      alert('Failed to update role');
+    }
+  };
+
+  const handleDeleteRole = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/role/delete/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete role');
+      }
+
+      setDeleteRoleId(null);
+      fetchRoles();
+      alert('Role deleted successfully');
+    } catch (err) {
+      console.error('Delete role error:', err);
+      alert('Failed to delete role. It may be assigned to users.');
+    }
+  };
+
+  /* ---------------- ACCESS CONTROL ---------------- */
 
   if (!isAdmin() && !isHR()) {
     return (
@@ -264,128 +262,236 @@ export default function UmUserManagementPage() {
       </div>
     );
   }
+  const getRoleName = (roleId) => {
+  const role = roles.find((r) => r.n_id === roleId);
+  return role ? role.s_role_name : 'No Role';
+};
+const formatDate = (date) => {
+  if (!date) return '-';
+  return new Date(date).toISOString().split('T')[0];
+};
+
+
+  /* ---------------- UI ---------------- */
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Team Members</h2>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Team Members</h1>
+            <p className="text-sm text-gray-500">
+              Manage users and assigned roles
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2">
-          {(isAdmin() || isHR()) && (
-            <Button
-              onClick={() => {
-                setForm({
-                  n_user_id: null,
-                  s_full_name: '',
-                  s_email: '',
-                  s_role: '',
-                  d_joining_date: '',
-                });
-                setIsEdit(false);
-                setIsOpen(true);
-              }}
-            >
-              <Plus className="w-4 h-4 mr-1" />
+          <div className="flex gap-2">
+            <Button onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-2" />
               Add User
             </Button>
-          )}
-
-          {(isAdmin() || isHR()) && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                console.log('Manage Roles clicked');
-                setIsManageRolesOpen(true);
-              }}
-            >
-              <Settings className="w-4 h-4 mr-1" />
+            <Button variant="outline" onClick={() => setIsManageRolesOpen(true)}>
+              <Settings className="w-4 h-4 mr-2" />
               Manage Roles
             </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="w-full overflow-x-auto">
-        <div className="grid grid-cols-6 gap-4 font-semibold border-b pb-2">
-          <div>Name</div>
-          <div>Role</div>
-          <div>Email</div>
-          <div>Joining Date</div>
-          <div>Status</div>
-          <div>Actions</div>
-        </div>
-
-        {users.map((user) => (
-          <div key={user.n_user_id} className="grid grid-cols-6 gap-4 items-center py-2 border-b">
-            <div>{user.s_full_name}</div>
-            <div>{user.s_role}</div>
-            <div>{user.s_email}</div>
-            <div>{user.d_joining_date ? user.d_joining_date.split('T')[0].split('-').reverse().join('-') : '-'}</div>
-            <div>
-              <Badge className="bg-green-500 text-white">Active</Badge>
-            </div>
-            <div className="flex gap-2">
-              {(isAdmin() || isHR()) && (
-                <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
-                  <Pencil size={16} />
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDeleteId(user.n_user_id);
-                }}
-              >
-                <Trash2 size={16} />
-              </Button>
-            </div>
           </div>
-        ))}
+        </div>
+
+        {/* ERROR MESSAGE */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* LOADING STATE */}
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading users...</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No users found. Create your first user!</p>
+          </div>
+        ) : (
+          /* USER CARDS */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {users.map((user) => (
+              <div
+                key={user.n_user_id}
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition"
+              >
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {user.s_full_name}
+                    </h3>
+                    <p className="text-sm text-gray-500">{user.s_email}</p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700 h-fit">
+                    Active
+                  </Badge>
+                </div>
+
+                <div className="mt-3 text-sm text-gray-600 space-y-1">
+                  <p>
+                    <strong>Role:</strong> {getRoleName(user.n_role)}
+                  </p>
+                  <p>
+                    <strong>Joined:</strong> {formatDate(user.d_joining_date)}
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
+                    <Pencil size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setDeleteId(user.n_user_id)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Manage Roles Dialog */}
-      <Dialog open={isManageRolesOpen} onOpenChange={setIsManageRolesOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      {/* ADD / EDIT USER */}
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="rounded-xl">
           <DialogHeader>
-            <DialogTitle>Manage Roles</DialogTitle>
-            <DialogDescription>View, edit, or delete existing roles</DialogDescription>
+            <DialogTitle>
+              {isEdit ? 'Update User' : 'Create User'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEdit
+                ? 'Modify user details'
+                : 'Add a new team member'}
+            </DialogDescription>
           </DialogHeader>
 
-          {/* Add New Role Section */}
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-            <h3 className="text-sm font-semibold mb-2">Add New Role</h3>
-            <div className="flex gap-2">
+          <div className="space-y-4 mt-4">
+            <Input
+              placeholder="Full Name *"
+              value={form.s_full_name}
+              onChange={(e) =>
+                setForm({ ...form, s_full_name: e.target.value })
+              }
+            />
+            <Input
+              type="email"
+              placeholder="Email *"
+              value={form.s_email}
+              onChange={(e) =>
+                setForm({ ...form, s_email: e.target.value })
+              }
+            />
+            {!isEdit && (
               <Input
-                placeholder="Enter role name"
-                value={newRoleInManage}
-                onChange={(e) => setNewRoleInManage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddRoleInManage();
-                  }
-                }}
+                type="password"
+                placeholder="Password *"
+                value={form.s_password}
+                onChange={(e) =>
+                  setForm({ ...form, s_password: e.target.value })
+                }
               />
-              <Button onClick={handleAddRoleInManage}>
-                <Plus className="w-4 h-4 mr-1" />
-                Add
+            )}
+            <select
+              className="w-full h-10 rounded-md border px-3 text-sm"
+              value={form.n_role}
+              onChange={(e) =>
+                setForm({ ...form, n_role: e.target.value })
+              }
+            >
+              <option value="">Select Role *</option>
+              {roles.map((r) => (
+                <option key={r.n_id} value={r.n_id}>
+                  {r.s_role_name}
+                </option>
+              ))}
+            </select>
+            <Input
+              type="date"
+              value={form.d_joining_date}
+              onChange={(e) =>
+                setForm({ ...form, d_joining_date: e.target.value })
+              }
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveUser}>
+                {isEdit ? 'Update User' : 'Create User'}
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          <div className="mt-4">
-            <div className="grid grid-cols-3 gap-4 font-semibold border-b pb-2 mb-2">
-              <div>Role Name</div>
-              <div>Role ID</div>
-              <div>Actions</div>
-            </div>
+      {/* DELETE USER */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteUsers(deleteId)}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-            {Array.isArray(roles) && roles.length > 0 ? (
+      {/* MANAGE ROLES */}
+      <Dialog open={isManageRolesOpen} onOpenChange={setIsManageRolesOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Manage Roles</DialogTitle>
+            <DialogDescription>
+              Create, update or delete roles
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-2 mt-3">
+            <Input
+              placeholder="New role name"
+              value={newRoleInManage}
+              onChange={(e) => setNewRoleInManage(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleAddRoleInManage();
+              }}
+            />
+            <Button onClick={handleAddRoleInManage}>Add</Button>
+          </div>
+
+          <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+            {roles.length === 0 ? (
+              <p className="text-center text-gray-500 py-4">No roles created yet</p>
+            ) : (
               roles.map((role) => (
-                <div key={role.n_id} className="grid grid-cols-3 gap-4 items-center py-3 border-b">
-                  {editingRole && editingRole.n_id === role.n_id ? (
+                <div
+                  key={role.n_id}
+                  className="flex justify-between items-center border rounded-lg p-3"
+                >
+                  {editingRole?.n_id === role.n_id ? (
                     <>
                       <Input
                         value={editingRole.s_role_name}
@@ -395,188 +501,73 @@ export default function UmUserManagementPage() {
                             s_role_name: e.target.value,
                           })
                         }
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') handleUpdateRole();
+                        }}
                       />
-                      <div>{role.n_id}</div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 ml-2">
                         <Button size="sm" onClick={handleUpdateRole}>
                           Save
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingRole(null)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingRole(null)}
+                        >
                           Cancel
                         </Button>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div>{role.s_role_name}</div>
-                      <div>{role.n_id}</div>
+                      <span className="font-medium">{role.s_role_name}</span>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditingRole(role)}>
-                          <Pencil size={16} />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingRole(role)}
+                        >
+                          <Pencil size={14} />
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => setDeleteRoleId(role.n_id)}>
-                          <Trash2 size={16} />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteRoleId(role.n_id)}
+                        >
+                          <Trash2 size={14} />
                         </Button>
                       </div>
                     </>
                   )}
                 </div>
               ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">No roles found. Add a role to get started.</div>
             )}
-          </div>
-
-          <div className="flex justify-end mt-4 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsManageRolesOpen(false);
-                setEditingRole(null);
-              }}
-            >
-              Close
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Role Confirmation Dialog */}
+      {/* DELETE ROLE */}
       <Dialog open={!!deleteRoleId} onOpenChange={() => setDeleteRoleId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Delete Role</DialogTitle>
+            <DialogTitle>Delete Role</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this role? This action cannot be undone.
+              Are you sure you want to delete this role? This may affect users assigned to this role.
             </DialogDescription>
           </DialogHeader>
-
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setDeleteRoleId(null)}>
               Cancel
             </Button>
-
-            <Button variant="destructive" onClick={() => handleDeleteRole(deleteRoleId)}>
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete User Confirmation Dialog */}
-      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Delete</DialogTitle>
-            <DialogDescription>Are you sure you want to delete this user?</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancel
-            </Button>
-
             <Button
               variant="destructive"
-              onClick={async () => {
-                await deleteUser(deleteId);
-                setDeleteId(null);
-              }}
+              onClick={() => handleDeleteRole(deleteRoleId)}
             >
               Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Update Confirmation Dialog */}
-      <Dialog open={confirmUpdate} onOpenChange={setConfirmUpdate}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Update</DialogTitle>
-            <DialogDescription>Are you sure you want to update this user?</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setConfirmUpdate(false)}>
-              Cancel
-            </Button>
-
-            <Button
-              onClick={async () => {
-                await saveUser();
-                setConfirmUpdate(false);
-              }}
-            >
-              Yes, Update
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add/Edit User Dialog */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{isEdit ? 'Update User' : 'Create User'}</DialogTitle>
-            <DialogDescription>
-              {isEdit ? 'Update user information' : 'Add a new team member to your organization'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <Input
-              id="full-name"
-              name="fullName"
-              placeholder="Full Name"
-              value={form.s_full_name}
-              onChange={(e) => setForm({ ...form, s_full_name: e.target.value })}
-            />
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={form.s_email}
-              onChange={(e) => setForm({ ...form, s_email: e.target.value })}
-            />
-            <select
-              id="role"
-              name="role"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={form.s_role}
-              onChange={(e) => setForm({ ...form, s_role: e.target.value })}
-            >
-              <option value="">Select Role</option>
-              {Array.isArray(roles) &&
-                roles.map((role) => (
-                  <option key={role.n_id} value={role.s_role_name}>
-                    {role.s_role_name}
-                  </option>
-                ))}
-            </select>
-            <Input
-              id="joining-date"
-              name="joiningDate"
-              type="date"
-              value={form.d_joining_date}
-              onChange={(e) => setForm({ ...form, d_joining_date: e.target.value })}
-            />
-            <Button
-              onClick={() => {
-                if (isEdit) {
-                  setConfirmUpdate(true);
-                } else {
-                  saveUser();
-                }
-              }}
-            >
-              {isEdit ? 'Update User' : 'Create User'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
-  
 }

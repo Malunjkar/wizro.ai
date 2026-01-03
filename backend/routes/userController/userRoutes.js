@@ -7,16 +7,16 @@ const userRouter = express.Router();
 userRouter.post('/register', userController.register);
 userRouter.post('/login', userController.login);
 userRouter.post('/updateUser', userController.updateUser);
-userRouter.post('/deleteUser', userController.deleteUser);
+// userRouter.post('/deleteUser', userController.deleteUser);
 
 // NEW secure routes
 userRouter.post('/refresh', userController.refreshToken);
 userRouter.post('/logout', userController.logout);
 
-userRouter.get("/getAll", userController.getUsers);
-userRouter.post("/create", userController.createUser);
-userRouter.delete("/delete/:id", userController.deleteUser);
-userRouter.put("/update", userController.updateUserDetails);
+userRouter.get('/getAll', userController.getUsers);
+userRouter.post('/create', userController.createUser);
+userRouter.put('/update', userController.updateUser);
+userRouter.delete('/delete/:id', userController.deleteUsers);
 
 userRouter.post("/role/create", userController.createRole);
 userRouter.get("/role/getAll", userController.getRoles);
