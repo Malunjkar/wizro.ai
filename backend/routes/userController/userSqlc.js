@@ -91,12 +91,11 @@ export default {
     return obj;
   },
 
+  // ==================== USER CRUD ====================
 
-// ==================== USER CRUD ====================
-  
-getAllUsers() {
-  return {
-    queryString: `
+  getAllUsers() {
+    return {
+      queryString: `
       SELECT
         n_user_id,
         s_full_name,
@@ -107,12 +106,9 @@ getAllUsers() {
       FROM tbl_users
       ORDER BY n_user_id ASC;
     `,
-    arr: [],
-  };
-},
-
-
-
+      arr: [],
+    };
+  },
 
   // ✅ CREATE USER - Minimal version without date column
   createUser(data) {
@@ -134,7 +130,7 @@ getAllUsers() {
         data.s_email,
         data.s_password,
         data.n_role,
-        data.n_status || 1 ,
+        data.n_status || 1,
         data.d_joining_date || null,
       ],
     };
@@ -176,7 +172,7 @@ getAllUsers() {
   //     arr: [data.n_user_id],
   //   };
   // },
-    deleteUsers(data) {
+  deleteUsers(data) {
     return {
       queryString: `
       DELETE FROM tbl_users
@@ -185,7 +181,6 @@ getAllUsers() {
       arr: [data.n_user_id],
     };
   },
-
 
   createRole(data) {
     return {

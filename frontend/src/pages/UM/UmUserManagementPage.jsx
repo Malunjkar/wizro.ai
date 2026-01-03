@@ -3,13 +3,7 @@ import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
 const API_BASE = 'http://localhost:5000/user';
@@ -142,7 +136,7 @@ export default function UmUserManagementPage() {
       setIsOpen(false);
       resetForm();
       fetchUsers();
-      
+
       alert(isEdit ? 'User updated successfully' : 'User created successfully');
     } catch (err) {
       console.error('Save user error:', err);
@@ -298,9 +292,7 @@ export default function UmUserManagementPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Team Members</h1>
-            <p className="text-sm text-gray-500">
-              Manage users and assigned roles
-            </p>
+            <p className="text-sm text-gray-500">Manage users and assigned roles</p>
           </div>
 
           <div className="flex gap-2">
@@ -316,11 +308,7 @@ export default function UmUserManagementPage() {
         </div>
 
         {/* ERROR MESSAGE */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
         {/* LOADING STATE */}
         {loading ? (
@@ -343,14 +331,10 @@ export default function UmUserManagementPage() {
                 >
                   <div className="flex justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg">
-                        {user.s_full_name}
-                      </h3>
+                      <h3 className="font-semibold text-lg">{user.s_full_name}</h3>
                       <p className="text-sm text-gray-500">{user.s_email}</p>
                     </div>
-                    <Badge className={`${statusBadge.color} h-fit`}>
-                      {statusBadge.label}
-                    </Badge>
+                    <Badge className={`${statusBadge.color} h-fit`}>{statusBadge.label}</Badge>
                   </div>
 
                   <div className="mt-3 text-sm text-gray-600 space-y-1">
@@ -366,11 +350,7 @@ export default function UmUserManagementPage() {
                     <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
                       <Pencil size={14} />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setDeleteId(user.n_user_id)}
-                    >
+                    <Button size="sm" variant="destructive" onClick={() => setDeleteId(user.n_user_id)}>
                       <Trash2 size={14} />
                     </Button>
                   </div>
@@ -382,54 +362,43 @@ export default function UmUserManagementPage() {
       </div>
 
       {/* ADD / EDIT USER */}
-      <Dialog open={isOpen} onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open) resetForm();
-      }}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) resetForm();
+        }}
+      >
         <DialogContent className="rounded-xl">
           <DialogHeader>
-            <DialogTitle>
-              {isEdit ? 'Update User' : 'Create User'}
-            </DialogTitle>
-            <DialogDescription>
-              {isEdit
-                ? 'Modify user details'
-                : 'Add a new team member'}
-            </DialogDescription>
+            <DialogTitle>{isEdit ? 'Update User' : 'Create User'}</DialogTitle>
+            <DialogDescription>{isEdit ? 'Modify user details' : 'Add a new team member'}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
             <Input
               placeholder="Full Name *"
               value={form.s_full_name}
-              onChange={(e) =>
-                setForm({ ...form, s_full_name: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, s_full_name: e.target.value })}
             />
             <Input
               type="email"
               placeholder="Email *"
               value={form.s_email}
-              onChange={(e) =>
-                setForm({ ...form, s_email: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, s_email: e.target.value })}
             />
             {!isEdit && (
               <Input
                 type="password"
                 placeholder="Password *"
                 value={form.s_password}
-                onChange={(e) =>
-                  setForm({ ...form, s_password: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, s_password: e.target.value })}
               />
             )}
             <select
               className="w-full h-10 rounded-md border px-3 text-sm"
               value={form.n_role}
-              onChange={(e) =>
-                setForm({ ...form, n_role: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, n_role: e.target.value })}
             >
               <option value="">Select Role *</option>
               {roles.map((r) => (
@@ -441,9 +410,7 @@ export default function UmUserManagementPage() {
             <select
               className="w-full h-10 rounded-md border px-3 text-sm"
               value={form.n_status}
-              onChange={(e) =>
-                setForm({ ...form, n_status: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, n_status: e.target.value })}
             >
               {STATUS_OPTIONS.map((status) => (
                 <option key={status.value} value={status.value}>
@@ -454,17 +421,13 @@ export default function UmUserManagementPage() {
             <Input
               type="date"
               value={form.d_joining_date}
-              onChange={(e) =>
-                setForm({ ...form, d_joining_date: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, d_joining_date: e.target.value })}
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={saveUser}>
-                {isEdit ? 'Update User' : 'Create User'}
-              </Button>
+              <Button onClick={saveUser}>{isEdit ? 'Update User' : 'Create User'}</Button>
             </div>
           </div>
         </DialogContent>
@@ -483,10 +446,7 @@ export default function UmUserManagementPage() {
             <Button variant="outline" onClick={() => setDeleteId(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteUsers(deleteId)}
-            >
+            <Button variant="destructive" onClick={() => deleteUsers(deleteId)}>
               Delete
             </Button>
           </div>
@@ -498,9 +458,7 @@ export default function UmUserManagementPage() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Manage Roles</DialogTitle>
-            <DialogDescription>
-              Create, update or delete roles
-            </DialogDescription>
+            <DialogDescription>Create, update or delete roles</DialogDescription>
           </DialogHeader>
 
           <div className="flex gap-2 mt-3">
@@ -520,10 +478,7 @@ export default function UmUserManagementPage() {
               <p className="text-center text-gray-500 py-4">No roles created yet</p>
             ) : (
               roles.map((role) => (
-                <div
-                  key={role.n_id}
-                  className="flex justify-between items-center border rounded-lg p-3"
-                >
+                <div key={role.n_id} className="flex justify-between items-center border rounded-lg p-3">
                   {editingRole?.n_id === role.n_id ? (
                     <>
                       <Input
@@ -542,11 +497,7 @@ export default function UmUserManagementPage() {
                         <Button size="sm" onClick={handleUpdateRole}>
                           Save
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingRole(null)}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => setEditingRole(null)}>
                           Cancel
                         </Button>
                       </div>
@@ -555,18 +506,10 @@ export default function UmUserManagementPage() {
                     <>
                       <span className="font-medium">{role.s_role_name}</span>
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingRole(role)}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => setEditingRole(role)}>
                           <Pencil size={14} />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setDeleteRoleId(role.n_id)}
-                        >
+                        <Button size="sm" variant="destructive" onClick={() => setDeleteRoleId(role.n_id)}>
                           <Trash2 size={14} />
                         </Button>
                       </div>
@@ -592,10 +535,7 @@ export default function UmUserManagementPage() {
             <Button variant="outline" onClick={() => setDeleteRoleId(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleDeleteRole(deleteRoleId)}
-            >
+            <Button variant="destructive" onClick={() => handleDeleteRole(deleteRoleId)}>
               Delete
             </Button>
           </div>

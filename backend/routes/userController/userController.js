@@ -251,41 +251,60 @@ export default {
     }
   },
 
-// ==================== USER MANAGEMENT ====================
+  // ==================== USER MANAGEMENT ====================
   async getUsers(req, res) {
-    try {      
-      const query = userSqlc.getAllUsers();      
+    try {
+      const query = userSqlc.getAllUsers();
       const result = await dbqueryexecute.executeSelectObj(query, pool);
-      
 
       res.status(200).json(Array.isArray(result) ? result : []);
     } catch (err) {
       console.error('❌ GET USERS ERROR:', err);
       console.error('❌ Error Stack:', err.stack);
       console.error('❌ Error Message:', err.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to fetch users',
         details: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
       });
     }
   },
 
   async createUser(req, res) {
     try {
-      const { s_full_name, s_email, s_password, n_role, n_status, d_joining_date } = req.body;
+      const {
+        s_full_name,
+        s_email,
+        s_password,
+        n_role,
+        n_status,
+        d_joining_date,
+      } = req.body;
 
-      console.log('📝 CREATE USER Request:', { s_full_name, s_email, n_role,n_status, d_joining_date});
+      console.log('📝 CREATE USER Request:', {
+        s_full_name,
+        s_email,
+        n_role,
+        n_status,
+        d_joining_date,
+      });
 
       // Validation
-      if (!s_full_name || !s_email || !s_password || !n_role ||!n_status ||!d_joining_date) {
+      if (
+        !s_full_name ||
+        !s_email ||
+        !s_password ||
+        !n_role ||
+        !n_status ||
+        !d_joining_date
+      ) {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
       // Check duplicate email
       const duplicate = await dbqueryexecute.executeSelectObj(
         userSqlc.getDuplicate({ email: s_email }),
-        pool
+        pool,
       );
 
       if (duplicate.length > 0) {
@@ -314,16 +333,23 @@ export default {
     } catch (err) {
       console.error('❌ CREATE USER ERROR:', err);
       console.error('❌ Error Details:', err.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to create user',
-        details: err.message 
+        details: err.message,
       });
     }
   },
 
   async updateUser(req, res) {
     try {
-      const { n_user_id, s_full_name, s_email, n_role, n_status, d_joining_date } = req.body;
+      const {
+        n_user_id,
+        s_full_name,
+        s_email,
+        n_role,
+        n_status,
+        d_joining_date,
+      } = req.body;
 
       if (!n_user_id) {
         return res.status(400).json({ error: 'User ID required' });
@@ -333,10 +359,11 @@ export default {
       if (s_email) {
         const duplicate = await dbqueryexecute.executeSelectObj(
           {
-            queryString: 'SELECT n_user_id FROM tbl_users WHERE s_email = $1 AND n_user_id != $2',
-            arr: [s_email, n_user_id]
+            queryString:
+              'SELECT n_user_id FROM tbl_users WHERE s_email = $1 AND n_user_id != $2',
+            arr: [s_email, n_user_id],
           },
-          pool
+          pool,
         );
 
         if (duplicate.length > 0) {
@@ -355,20 +382,19 @@ export default {
 
       const result = await dbqueryexecute.executeSelectObj(query, pool);
 
-
       res.status(200).json(result[0] || result);
     } catch (err) {
       console.error('❌ UPDATE USER ERROR:', err);
       console.error('❌ Error Stack:', err.stack);
       console.error('❌ Error Message:', err.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to update user',
-        details: err.message 
+        details: err.message,
       });
     }
   },
 
-async deleteUsers(req, res) {
+  async deleteUsers(req, res) {
     try {
       const { id } = req.params;
       if (!id) {
@@ -382,7 +408,6 @@ async deleteUsers(req, res) {
       res.status(500).json({ error: 'Failed to delete user' });
     }
   },
-
 
   async createRole(req, res) {
     try {
