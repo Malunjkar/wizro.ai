@@ -325,8 +325,6 @@ export default {
     try {
       const { n_user_id, s_full_name, s_email, n_role, n_status, d_joining_date } = req.body;
 
-      console.log('📝 UPDATE USER Request:', { n_user_id, s_full_name, s_email, n_role, n_status, d_joining_date });
-
       if (!n_user_id) {
         return res.status(400).json({ error: 'User ID required' });
       }
@@ -355,11 +353,8 @@ export default {
         d_joining_date,
       });
 
-      console.log('🔍 UPDATE Query:', query);
-
       const result = await dbqueryexecute.executeSelectObj(query, pool);
 
-      console.log('✅ UPDATE Result:', result);
 
       res.status(200).json(result[0] || result);
     } catch (err) {
