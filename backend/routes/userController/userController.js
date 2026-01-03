@@ -273,12 +273,12 @@ export default {
 
   async createUser(req, res) {
     try {
-      const { s_full_name, s_email, s_password, n_role, d_joining_date } = req.body;
+      const { s_full_name, s_email, s_password, n_role, n_status, d_joining_date } = req.body;
 
-      console.log('📝 CREATE USER Request:', { s_full_name, s_email, n_role, d_joining_date});
+      console.log('📝 CREATE USER Request:', { s_full_name, s_email, n_role,n_status, d_joining_date});
 
       // Validation
-      if (!s_full_name || !s_email || !s_password || !n_role ||!d_joining_date) {
+      if (!s_full_name || !s_email || !s_password || !n_role ||!n_status ||!d_joining_date) {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
@@ -300,6 +300,7 @@ export default {
         s_email,
         s_password: hashedPassword,
         n_role: parseInt(n_role),
+        n_status: parseInt(n_status) || 1,
         d_joining_date,
       });
 
@@ -322,9 +323,9 @@ export default {
 
   async updateUser(req, res) {
     try {
-      const { n_user_id, s_full_name, s_email, n_role, d_joining_date } = req.body;
+      const { n_user_id, s_full_name, s_email, n_role, n_status, d_joining_date } = req.body;
 
-      console.log('📝 UPDATE USER Request:', { n_user_id, s_full_name, s_email, n_role,d_joining_date });
+      console.log('📝 UPDATE USER Request:', { n_user_id, s_full_name, s_email, n_role, n_status, d_joining_date });
 
       if (!n_user_id) {
         return res.status(400).json({ error: 'User ID required' });
@@ -350,6 +351,7 @@ export default {
         s_full_name,
         s_email,
         n_role: parseInt(n_role),
+        n_status: n_status || 'Active',
         d_joining_date,
       });
 

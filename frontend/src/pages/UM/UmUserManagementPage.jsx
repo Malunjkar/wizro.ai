@@ -14,6 +14,14 @@ import { Input } from '@/components/ui/input';
 
 const API_BASE = 'http://localhost:5000/user';
 
+// Status options - using numeric codes for database
+const STATUS_OPTIONS = [
+  { value: 1, label: 'Active', color: 'bg-green-100 text-green-700' },
+  { value: 2, label: 'Inactive', color: 'bg-gray-100 text-gray-700' },
+  { value: 3, label: 'On Leave', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 4, label: 'Suspended', color: 'bg-red-100 text-red-700' },
+];
+
 export default function UmUserManagementPage() {
   const { isAdmin, isHR } = useAuth();
 
@@ -36,6 +44,7 @@ export default function UmUserManagementPage() {
     s_password: '',
     n_role: '',
     d_joining_date: '',
+    n_status: 1, // Default status (1 = Active)
   });
 
   /* ---------------- FETCH ---------------- */
@@ -82,6 +91,7 @@ export default function UmUserManagementPage() {
       s_password: '',
       n_role: '',
       d_joining_date: '',
+      n_status: 1,
     });
     setIsEdit(false);
   };
@@ -108,15 +118,14 @@ export default function UmUserManagementPage() {
         s_email: form.s_email,
         n_role: parseInt(form.n_role),
         d_joining_date: form.d_joining_date || null,
+        n_status: parseInt(form.n_status),
       };
-
 
       if (isEdit) {
         payload.n_user_id = form.n_user_id;
       } else {
         payload.s_password = form.s_password;
       }
-
 
       const response = await fetch(url, {
         method,
@@ -125,7 +134,6 @@ export default function UmUserManagementPage() {
       });
 
       const result = await response.json();
-
 
       if (!response.ok) {
         throw new Error(result.error || result.details || 'Failed to save user');
@@ -166,9 +174,10 @@ export default function UmUserManagementPage() {
       n_user_id: user.n_user_id,
       s_full_name: user.s_full_name,
       s_email: user.s_email,
-      s_password: '', // Don't populate password
+      s_password: '',
       n_role: user.n_role,
       d_joining_date: user.d_joining_date?.split('T')[0] || '',
+      n_status: user.n_status || 1,
     });
     setIsEdit(true);
     setIsOpen(true);
@@ -226,7 +235,7 @@ export default function UmUserManagementPage() {
 
       setEditingRole(null);
       fetchRoles();
-      fetchUsers(); // Refresh users to show updated role names
+      fetchUsers();
       alert('Role updated successfully');
     } catch (err) {
       console.error('Update role error:', err);
@@ -253,6 +262,23 @@ export default function UmUserManagementPage() {
     }
   };
 
+  /* ---------------- HELPER FUNCTIONS ---------------- */
+
+  const getRoleName = (roleId) => {
+    const role = roles.find((r) => r.n_id === roleId);
+    return role ? role.s_role_name : 'No Role';
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '-';
+    return new Date(date).toISOString().split('T')[0];
+  };
+
+  const getStatusBadge = (status) => {
+    const statusOption = STATUS_OPTIONS.find((s) => s.value === status);
+    return statusOption || STATUS_OPTIONS[0];
+  };
+
   /* ---------------- ACCESS CONTROL ---------------- */
 
   if (!isAdmin() && !isHR()) {
@@ -262,15 +288,6 @@ export default function UmUserManagementPage() {
       </div>
     );
   }
-  const getRoleName = (roleId) => {
-  const role = roles.find((r) => r.n_id === roleId);
-  return role ? role.s_role_name : 'No Role';
-};
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toISOString().split('T')[0];
-};
-
 
   /* ---------------- UI ---------------- */
 
@@ -317,46 +334,49 @@ const formatDate = (date) => {
         ) : (
           /* USER CARDS */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {users.map((user) => (
-              <div
-                key={user.n_user_id}
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition"
-              >
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg">
-                      {user.s_full_name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{user.s_email}</p>
+            {users.map((user) => {
+              const statusBadge = getStatusBadge(user.n_status);
+              return (
+                <div
+                  key={user.n_user_id}
+                  className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition"
+                >
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">
+                        {user.s_full_name}
+                      </h3>
+                      <p className="text-sm text-gray-500">{user.s_email}</p>
+                    </div>
+                    <Badge className={`${statusBadge.color} h-fit`}>
+                      {statusBadge.label}
+                    </Badge>
                   </div>
-                  <Badge className="bg-green-100 text-green-700 h-fit">
-                    Active
-                  </Badge>
-                </div>
 
-                <div className="mt-3 text-sm text-gray-600 space-y-1">
-                  <p>
-                    <strong>Role:</strong> {getRoleName(user.n_role)}
-                  </p>
-                  <p>
-                    <strong>Joined:</strong> {formatDate(user.d_joining_date)}
-                  </p>
-                </div>
+                  <div className="mt-3 text-sm text-gray-600 space-y-1">
+                    <p>
+                      <strong>Role:</strong> {getRoleName(user.n_role)}
+                    </p>
+                    <p>
+                      <strong>Joined:</strong> {formatDate(user.d_joining_date)}
+                    </p>
+                  </div>
 
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
-                    <Pencil size={14} />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => setDeleteId(user.n_user_id)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
+                      <Pencil size={14} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeleteId(user.n_user_id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -415,6 +435,19 @@ const formatDate = (date) => {
               {roles.map((r) => (
                 <option key={r.n_id} value={r.n_id}>
                   {r.s_role_name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full h-10 rounded-md border px-3 text-sm"
+              value={form.n_status}
+              onChange={(e) =>
+                setForm({ ...form, n_status: e.target.value })
+              }
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
                 </option>
               ))}
             </select>

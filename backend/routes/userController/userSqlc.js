@@ -102,6 +102,7 @@ getAllUsers() {
         s_full_name,
         s_email,
         n_role,
+        n_status,
         TO_CHAR(d_joining_date, 'YYYY-MM-DD') AS d_joining_date
       FROM tbl_users
       ORDER BY n_user_id ASC;
@@ -114,57 +115,61 @@ getAllUsers() {
 
 
   // ✅ CREATE USER - Minimal version without date column
-createUser(data) {
-  return {
-    queryString: `
-      INSERT INTO tbl_users
-      (s_full_name, s_email, s_password, n_role, d_joining_date)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING 
-        n_user_id,
-        s_full_name,
-        s_email,
-        n_role,
-        d_joining_date;
-    `,
-    arr: [
-      data.s_full_name,
-      data.s_email,
-      data.s_password,
-      data.n_role,
-      data.d_joining_date || null,
-    ],
-  };
-},
+  createUser(data) {
+    return {
+      queryString: `
+        INSERT INTO tbl_users
+        (s_full_name, s_email, s_password, n_role, n_status, d_joining_date)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING 
+          n_user_id,
+          s_full_name,
+          s_email,
+          n_role,
+          n_status,
+          d_joining_date;
+      `,
+      arr: [
+        data.s_full_name,
+        data.s_email,
+        data.s_password,
+        data.n_role,
+        data.n_status || 1 ,
+        data.d_joining_date || null,
+      ],
+    };
+  },
 
   // ✅ UPDATE USER - Only update existing columns
   updateUser(data) {
-  return {
-    queryString: `
-      UPDATE tbl_users
-      SET
-        s_full_name = $1,
-        s_email = $2,
-        n_role = $3,
-        d_joining_date = $4
-      WHERE n_user_id = $5
-      RETURNING 
-        n_user_id,
-        s_full_name,
-        s_email,
-        n_role,
-        d_joining_date;
-    `,
-    arr: [
-      data.s_full_name,
-      data.s_email,
-      data.n_role,
-      data.d_joining_date,
-      data.n_user_id,
-    ],
-  };
-},
-
+    return {
+      queryString: `
+        UPDATE tbl_users
+        SET
+          s_full_name = $1,
+          s_email = $2,
+          n_role = $3,
+          d_joining_date = $4,
+          n_status = $5
+        WHERE n_user_id = $6
+        RETURNING 
+          n_user_id,
+          s_full_name,
+          s_email,
+          n_role,
+          d_joining_date,
+          n_status;
+      `,
+      arr: [
+        data.s_full_name,
+        data.s_email,
+        data.n_role,
+        data.d_joining_date,
+        data.n_status || 'Active',
+        data.n_user_id,
+      ],
+    };
+  },
   // deleteUser(data) {
   //   return {
   //     queryString: `DELETE FROM tbl_users WHERE n_user_id = $1;`,
