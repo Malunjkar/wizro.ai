@@ -43,9 +43,10 @@ const AddExpense = () => {
     try {
       const payload = {
         ...form,
-        employee_id: null,
+        employee_id: form.employee_id || null,
         amount: parseFloat(form.amount),
-      };
+        };
+
  
       await axiosInstance.post("/fm/expenses", payload);
  

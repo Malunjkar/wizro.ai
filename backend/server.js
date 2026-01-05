@@ -14,6 +14,7 @@ import pmRoutes from './routes/pmController/pmRoutes.js';
 import ticketRoutes from './routes/ticketController/ticketRoutes.js';
 import userRoutes from './routes/userController/userRoutes.js';
 import dbqueryexecute from './utils/dbqueryexecute.js';
+import fmrouter from './routes/fmController/fm.routes.js';
 
 const ensureUploadDir = async () => {
   const uploadPath = './uploads';
@@ -71,6 +72,7 @@ app.use('/user', userRoutes);
 app.use('/pm', pmRoutes);
 app.use('/am', amRoutes);
 app.use('/common', commonRoutes);
+app.use('/fm', fmrouter);
 
 const fileUploadLimit = 10;
 

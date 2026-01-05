@@ -22,9 +22,11 @@ const authMiddleware = (req, res, next) => {
     const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
  
     req.user = {
-      user_id: decoded.id,
-      role: decoded.role,
-    };
+        user_id: decoded.id,
+        role: decoded.role,
+        empID: decoded.empID, // ✅ REQUIRED
+        };
+
  
     next();
   } catch (error) {

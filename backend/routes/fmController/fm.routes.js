@@ -11,31 +11,31 @@ import {
   deleteExpense,
 } from '../../controllers/fm.expense.controller.js';
 
-const router = express.Router();
+const fmrouter = express.Router();
 
 /* ================= EXPENSE ROUTES ================= */
 
 // 🔐 GET ALL EXPENSES (ROLE-AWARE)
-router.get('/expenses', authMiddleware, getAllExpenses);
+fmrouter.get('/expenses', authMiddleware, getAllExpenses);
 
 // 🔐 CREATE EXPENSE (ANY LOGGED-IN USER)
-router.post('/expenses', authMiddleware, createExpense);
+fmrouter.post('/expenses', authMiddleware, createExpense);
 
-// 🔐 PENDING EXPENSES (ADMIN / HR / PM)
-router.get('/expenses/pending', authMiddleware, getPendingExpenses);
+// 🔐 PENDING EfmXPENSES (ADMIN / HR / PM)
+fmrouter.get('/expenses/pending', authMiddleware, getPendingExpenses);
 
 // 🔐 APPROVE EXPENSE
-router.post('/expenses/:id/approve', authMiddleware, approveExpense);
+fmrouter.post('/expenses/:id/approve', authMiddleware, approveExpense);
 
 // 🔐 REJECT EXPENSE
-router.post('/expenses/:id/reject', authMiddleware, rejectExpense);
+fmrouter.post('/expenses/:id/reject', authMiddleware, rejectExpense);
 
 // 🔐 DELETE EXPENSE
-router.delete('/expenses/:id', authMiddleware, deleteExpense);
+fmrouter.delete('/expenses/:id', authMiddleware, deleteExpense);
 
 /* ================= EMPLOYEES ================= */
 
 // 🔐 FETCH EMPLOYEES (FOR DROPDOWN ETC.)
-router.get('/employees', authMiddleware, getAllEmployees);
+fmrouter.get('/employees', authMiddleware, getAllEmployees);
 
-export default router;
+export default fmrouter;

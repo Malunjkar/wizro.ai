@@ -1,5 +1,4 @@
-import pool from "../../config/config.js";
-import dbqueryexecute from "../../utils/dbqueryexecute.js";
+import pool from "../config/config.js";
  
 /* ================= FETCH ================= */
  
@@ -13,11 +12,15 @@ export const fetchAllExpenses = async () => {
  
 export const fetchAllEmployees = async () => {
   return pool.query(`
-    SELECT employee_id, employee_name
-    FROM tbl_employee_master
-    ORDER BY employee_name
+    SELECT
+      n_user_id AS employee_id,
+      s_full_name AS employee_name
+    FROM tbl_users
+    ORDER BY s_full_name
   `);
 };
+
+
  
 export const fetchExpensesByEmployee = async (empID) => {
   return pool.query(

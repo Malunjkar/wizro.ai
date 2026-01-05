@@ -7,7 +7,8 @@ import {
   rejectExpenseById,
   fetchPendingExpenses,
   deleteExpenseById,
-} from '../routes/services/fm.expense.servics';
+} from '../services/fm.expense.services.js';
+
 
 /* ================= GET ALL EXPENSES ================= */
 
@@ -41,13 +42,24 @@ export const getAllExpenses = async (req, res) => {
 
 /* ================= GET ALL EMPLOYEES ================= */
 
+// export const getAllEmployees = async (_req, res) => {
+//   try {
+//     const result = await fetchAllEmployees();
+//     res.status(200).json(result.rows);
+//   } catch (error) {
+//     console.error("GET EMPLOYEES ERROR:", error);
+//     res.status(500).json({ message: "Failed to fetch employees" });
+//   }
+// };
 export const getAllEmployees = async (_req, res) => {
   try {
+    console.log("HIT /fm/employees");
     const result = await fetchAllEmployees();
+    console.log("EMP ROWS:", result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('GET EMPLOYEES ERROR:', error);
-    res.status(500).json({ message: 'Failed to fetch employees' });
+    console.error("DB ERROR:", error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
