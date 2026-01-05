@@ -177,6 +177,17 @@ const getTmNavigationItems = () => {
     { id: 'create', name: 'Create Ticket', href: '/tm/create' },
   ];
 };
+// ✅ FM navigation – DB driven, NO hardcoded roles
+const getFmNavigationItems = () => {
+  if (!hasPermission('FINANCE_MANAGEMENT')) return [];
+
+  return [
+    { id: 'dashboard', name: 'Dashboard', href: '/fm/dashboard' },
+    { id: 'expenses', name: 'Expenses', href: '/fm/expenses' },
+    { id: 'add-expense', name: 'Add Expense', href: '/fm/expenses/add' },
+    { id: 'approvals', name: 'Expense Approvals', href: '/fm/expenses/approvals' },
+  ];
+};
 
   // ================= CONTEXT VALUE =================
   const value = {
@@ -196,6 +207,7 @@ const getTmNavigationItems = () => {
     getHrNavigationItems,
     getPmNavigationItems,
     getTmNavigationItems,
+    getFmNavigationItems,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

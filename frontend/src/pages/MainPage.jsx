@@ -99,7 +99,7 @@ const allModules = [
     description: 'Handle invoices, payments, expenses, and budgeting',
     keyFeatures: ['Dashboard', 'Invoices', 'Payments', 'Expenses', 'Budget & Costing'],
     permission: 'FINANCE_MANAGEMENT',
-    route: '/fin/dashboard',
+    route: '/fm/dashboard',
     icon: Receipt,
     color: 'amber',
   },

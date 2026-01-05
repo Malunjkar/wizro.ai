@@ -11,6 +11,7 @@ import HrRoutes from './HrRoutes';
 import PmRoutes from './PmRoutes';
 import TmRoutes from './TmRoutes';
 import UmRoutes from './UmRoutes';
+import FMRoutes from './FMRoutes';
 
 const routes = [
   { path: '/', element: <LandingPage /> },
@@ -23,6 +24,7 @@ const routes = [
   TmRoutes,
   AmRoutes,
   UmRoutes,
+  FMRoutes,
 
   { path: '*', element: <NotFoundPage /> },
 ];
