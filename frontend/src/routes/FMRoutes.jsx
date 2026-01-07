@@ -7,47 +7,64 @@ import ExpenseManagement from "@/pages/FM/ExpenseManagement";
 import AddExpense from "@/pages/FM/AddExpense";
 import ExpenseApproval from "@/pages/FM/ExpenseApproval";
 
-export default {
-  path: "/fm",
-  element: <FinanceLayout />,
+const fmChildren = [
+  {
+    index: true,
+    element: <Navigate to="dashboard" replace />,
+  },
+  {
+    path: "dashboard",
+    element: <FinanceDashboard />,
+  },
+  {
+    path: "expenses",
+    element: <ExpenseManagement />,
+  },
+  {
+    path: "expenses/add",
+    element: <AddExpense />,
+  },
+  {
+    path: "expenses/approvals",
+    element: <ExpenseApproval />,
+  },
+];
 
-  children: [
-    {
-      index: true,
-      element: <Navigate to="dashboard" replace />,
-    },
-
-    {
-      path: "dashboard",
-      element: (
-        <ProtectedRoute>
-          <FinanceDashboard />
-        </ProtectedRoute>
-      ),
-    },
-    {
-      path: "expenses",
-      element: (
-        <ProtectedRoute>
-          <ExpenseManagement />
-        </ProtectedRoute>
-      ),
-    },
-    {
-      path: "expenses/add",
-      element: (
-        <ProtectedRoute>
-          <AddExpense />
-        </ProtectedRoute>
-      ),
-    },
-    {
-      path: "expenses/approvals",
-      element: (
-        <ProtectedRoute>
-          <ExpenseApproval />
-        </ProtectedRoute>
-      ),
-    },
-  ],
-};
+export default [
+  {
+    path: "/fm",
+    element: (
+      <ProtectedRoute>
+        <FinanceLayout />
+      </ProtectedRoute>
+    ),
+    children: fmChildren,
+  },
+  {
+    path: "/hr/fm",
+    element: (
+      <ProtectedRoute>
+        <FinanceLayout />
+      </ProtectedRoute>
+    ),
+    children: fmChildren,
+  },
+  {
+    path: "/pm/fm",
+    element: (
+      <ProtectedRoute>
+        <FinanceLayout />
+      </ProtectedRoute>
+    ),
+    children: fmChildren,
+  },
+  {
+    path: "/employee/fm",
+    element: (
+      <ProtectedRoute>
+        <FinanceLayout />
+      </ProtectedRoute>
+    ),
+    children: fmChildren,
+  },
+];

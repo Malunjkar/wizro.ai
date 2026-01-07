@@ -3,8 +3,15 @@ import axiosInstance from "@/lib/axiosConfig";
 import { useAuth } from "@/context/AuthContext";
 
 const ExpenseList = () => {
-  const { user } = useAuth();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isEmployee = user?.role === 3; // 3 = Employee
+
+
+  const canApprove = hasPermission("FINANCE_MANAGEMENT");
+  const canReject = hasPermission("FINANCE_MANAGEMENT");
+  const canDelete = hasPermission("FINANCE_MANAGEMENT");
+
+
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -28,18 +35,11 @@ const ExpenseList = () => {
 
   /* ================= ROLE ================= */
 
-  const roleMap = {
-    1: "admin",
-    2: "project manager",
-    3: "emp",
-    4: "hr",
-  };
 
-  const role =
-    typeof user.role === "number" ? roleMap[user.role] : user.role;
 
-  const canModify =
-    role === "admin" || role === "hr" || role === "project manager";
+  const canModify = !isEmployee && (canApprove || canReject);
+
+
 
   /* ================= ACTION HANDLERS ================= */
 
@@ -105,13 +105,6 @@ const ExpenseList = () => {
     }
   };
 
-    if (!hasPermission('USER_MANAGEMENT')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h2 className="text-xl font-semibold text-red-600">Access Denied</h2>
-      </div>
-    );
-  }
 
   /* ================= UI ================= */
 
@@ -188,21 +181,26 @@ const ExpenseList = () => {
 
                     {openMenuId === exp.expense_id && (
                       <div className="absolute right-4 mt-2 w-32 bg-white border rounded shadow z-10">
-                        <button
-                          onClick={() => approveExpense(exp.expense_id)}
-                          className="block w-full px-3 py-2 text-left text-green-600 hover:bg-slate-100 text-xs"
-                        >
-                          Approve
-                        </button>
 
-                        <button
-                          onClick={() => rejectExpense(exp.expense_id)}
-                          className="block w-full px-3 py-2 text-left text-orange-600 hover:bg-slate-100 text-xs"
-                        >
-                          Reject
-                        </button>
+                        {canApprove && (
+                          <button
+                            onClick={() => approveExpense(exp.expense_id)}
+                            className="block w-full px-3 py-2 text-left text-green-600 hover:bg-slate-100 text-xs"
+                          >
+                            Approve
+                          </button>
+                        )}
 
-                        {role === "admin" && (
+                        {canReject && (
+                          <button
+                            onClick={() => rejectExpense(exp.expense_id)}
+                            className="block w-full px-3 py-2 text-left text-orange-600 hover:bg-slate-100 text-xs"
+                          >
+                            Reject
+                          </button>
+                        )}
+
+                        {canDelete && (
                           <button
                             onClick={() => deleteExpense(exp.expense_id)}
                             className="block w-full px-3 py-2 text-left text-red-600 hover:bg-slate-100 text-xs"
@@ -210,8 +208,10 @@ const ExpenseList = () => {
                             Delete
                           </button>
                         )}
+
                       </div>
                     )}
+
                   </td>
                 )}
               </tr>
