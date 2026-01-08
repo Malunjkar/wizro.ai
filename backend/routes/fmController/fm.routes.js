@@ -11,6 +11,9 @@ import {
   deleteExpense,
 } from '../../controllers/fm.expense.controller.js';
 
+// ✅ IMPORT INVOICE ROUTES
+import invoiceRoutes from './invoice.routes.js';
+
 const fmrouter = express.Router();
 
 /* ================= EXPENSE ROUTES ================= */
@@ -21,7 +24,7 @@ fmrouter.get('/expenses', authMiddleware, getAllExpenses);
 // 🔐 CREATE EXPENSE (ANY LOGGED-IN USER)
 fmrouter.post('/expenses', authMiddleware, createExpense);
 
-// 🔐 PENDING EfmXPENSES (ADMIN / HR / PM)
+// 🔐 PENDING EXPENSES (ADMIN / HR / PM)
 fmrouter.get('/expenses/pending', authMiddleware, getPendingExpenses);
 
 // 🔐 APPROVE EXPENSE
@@ -37,5 +40,10 @@ fmrouter.delete('/expenses/:id', authMiddleware, deleteExpense);
 
 // 🔐 FETCH EMPLOYEES (FOR DROPDOWN ETC.)
 fmrouter.get('/employees', authMiddleware, getAllEmployees);
+
+/* ================= INVOICE ROUTES ================= */
+
+// 🔐 INVOICE MANAGEMENT (CREATE / LIST / VIEW / APPROVE / PDF)
+fmrouter.use('/invoices', authMiddleware, invoiceRoutes);
 
 export default fmrouter;
