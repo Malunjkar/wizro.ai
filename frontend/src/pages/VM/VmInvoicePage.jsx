@@ -7,6 +7,7 @@ const VmInvoicePage = () => {
 
   const [vendors, setVendors] = useState([]);
   const [selectedVendorCode, setSelectedVendorCode] = useState("");
+  const [isInterState, setIsInterState] = useState(false);
 
   const [form, setForm] = useState({
     billToName: "",
@@ -22,8 +23,6 @@ const VmInvoicePage = () => {
     items: [{ desc: "", qty: 1, price: 0 }],
 
     discount: 0,
-    sgst: 9,
-    cgst: 9,
   });
 
   /* ================= LOAD VENDORS ================= */
@@ -41,9 +40,25 @@ const VmInvoicePage = () => {
   );
 
   const subtotalLessDiscount = subtotal - Number(form.discount || 0);
-  const sgstAmount = (subtotalLessDiscount * form.sgst) / 100;
-  const cgstAmount = (subtotalLessDiscount * form.cgst) / 100;
-  const totalTax = sgstAmount + cgstAmount;
+
+  // FIXED TAX RATES
+  const SGST_RATE = 9;
+  const CGST_RATE = 9;
+  const IGST_RATE = 18;
+
+  const sgstAmount = isInterState
+    ? 0
+    : (subtotalLessDiscount * SGST_RATE) / 100;
+
+  const cgstAmount = isInterState
+    ? 0
+    : (subtotalLessDiscount * CGST_RATE) / 100;
+
+  const igstAmount = isInterState
+    ? (subtotalLessDiscount * IGST_RATE) / 100
+    : 0;
+
+  const totalTax = sgstAmount + cgstAmount + igstAmount;
   const total = subtotalLessDiscount + totalTax;
 
   /* ================= HANDLERS ================= */
@@ -117,43 +132,20 @@ const VmInvoicePage = () => {
 
           {/* BILL TO */}
           <Section title="Bill To">
-            <input
-              className="input"
-              value={form.billToName}
-              readOnly
-            />
-            <textarea
-              className="textarea"
-              value={form.billToAddress}
-              readOnly
-            />
+            <input className="input" value={form.billToName} readOnly />
+            <textarea className="textarea" value={form.billToAddress} readOnly />
           </Section>
 
-          {/* CONTACT */}
-          <Section title="Contact Person">
-            <div className="grid grid-3">
+          {/* INTER-STATE */}
+          <Section title="Tax Type">
+            <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <input
-                className="input"
-                placeholder="Name"
-                onChange={(e) =>
-                  setForm({ ...form, contactName: e.target.value })
-                }
+                type="checkbox"
+                checked={isInterState}
+                onChange={(e) => setIsInterState(e.target.checked)}
               />
-              <input
-                className="input"
-                placeholder="Email"
-                onChange={(e) =>
-                  setForm({ ...form, contactEmail: e.target.value })
-                }
-              />
-              <input
-                className="input"
-                placeholder="Contact No"
-                onChange={(e) =>
-                  setForm({ ...form, contactNo: e.target.value })
-                }
-              />
-            </div>
+              Inter-state Transaction (Apply IGST 18%)
+            </label>
           </Section>
 
           {/* QUOTATION DETAILS */}
@@ -180,11 +172,7 @@ const VmInvoicePage = () => {
                   setForm({ ...form, poNo: e.target.value })
                 }
               />
-              <input
-                className="input"
-                value={form.venCode}
-                readOnly
-              />
+              <input className="input" value={form.venCode} readOnly />
             </div>
           </Section>
 
@@ -250,8 +238,9 @@ const VmInvoicePage = () => {
                 <p>Subtotal</p>
                 <p>Discount</p>
                 <p>Subtotal Less Discount</p>
-                <p>SGST (%)</p>
-                <p>CGST (%)</p>
+                {!isInterState && <p>SGST (9%)</p>}
+                {!isInterState && <p>CGST (9%)</p>}
+                {isInterState && <p>IGST (18%)</p>}
                 <p><b>Total Tax</b></p>
                 <p className="total-label">Total</p>
               </div>
@@ -270,29 +259,9 @@ const VmInvoicePage = () => {
 
                 <p>₹ {subtotalLessDiscount}</p>
 
-                <div className="tax-row">
-                  <input
-                    type="number"
-                    className="tax-input"
-                    value={form.sgst}
-                    onChange={(e) =>
-                      setForm({ ...form, sgst: e.target.value })
-                    }
-                  />
-                  <span>% → ₹ {sgstAmount}</span>
-                </div>
-
-                <div className="tax-row">
-                  <input
-                    type="number"
-                    className="tax-input"
-                    value={form.cgst}
-                    onChange={(e) =>
-                      setForm({ ...form, cgst: e.target.value })
-                    }
-                  />
-                  <span>% → ₹ {cgstAmount}</span>
-                </div>
+                {!isInterState && <p>₹ {sgstAmount}</p>}
+                {!isInterState && <p>₹ {cgstAmount}</p>}
+                {isInterState && <p>₹ {igstAmount}</p>}
 
                 <p><b>₹ {totalTax}</b></p>
                 <p className="total-value">₹ {total}</p>
