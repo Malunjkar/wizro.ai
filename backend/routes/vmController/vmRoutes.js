@@ -12,6 +12,7 @@ vmRouter.post("/vendors", vmController.addVendor);
 vmRouter.get("/vendors", vmController.getAllVendors);
 vmRouter.put("/vendors/:id", vmController.updateVendor);
 vmRouter.delete("/vendors/:id", vmController.deleteVendor);
+vmRouter.get("/vendors/code/:vendorCode", vmController.getVendorByCode);
 
 
 export default vmRouter;

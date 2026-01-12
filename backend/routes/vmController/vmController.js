@@ -2,7 +2,7 @@ import pool from "../../config/config.js";
 import vmSqlc from "./vmSqlc.js";
 
 /* ===========================
-   EXISTING FUNCTIONS (UNCHANGED)
+   DASHBOARD (UNCHANGED)
 =========================== */
 
 const getDashboardStats = async (req, res) => {
@@ -34,7 +34,7 @@ const getVmUsageStats = async (req, res) => {
 };
 
 /* ===========================
-   NEW VENDOR FUNCTIONS
+   VENDOR FUNCTIONS
 =========================== */
 
 const addVendor = async (req, res) => {
@@ -42,7 +42,7 @@ const addVendor = async (req, res) => {
     const {
       vendorCode,
       companyName,
-      businessType,
+      vendorAddress,
       industry,
       registrationNumber,
       gstNumber,
@@ -53,7 +53,7 @@ const addVendor = async (req, res) => {
     const result = await pool.query(vmSqlc.insertVendorQuery, [
       vendorCode,
       companyName,
-      businessType,
+      vendorAddress,
       industry,
       registrationNumber,
       gstNumber,
@@ -84,13 +84,37 @@ const getAllVendors = async (_req, res) => {
     res.status(500).json({ message: "Error fetching vendors" });
   }
 };
+
+/* ===========================
+   NEW: GET VENDOR BY CODE
+=========================== */
+const getVendorByCode = async (req, res) => {
+  try {
+    const { vendorCode } = req.params;
+
+    const result = await pool.query(
+      "SELECT * FROM vendors WHERE vendor_code = $1",
+      [vendorCode]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("GET VENDOR ERROR:", err);
+    res.status(500).json({ message: "Error fetching vendor" });
+  }
+};
+
 const updateVendor = async (req, res) => {
   try {
     const { id } = req.params;
 
     const {
       companyName,
-      businessType,
+      vendorAddress,
       industry,
       registrationNumber,
       gstNumber,
@@ -100,13 +124,13 @@ const updateVendor = async (req, res) => {
 
     const result = await pool.query(vmSqlc.updateVendorQuery, [
       companyName,
-      businessType,
+      vendorAddress,
       industry,
       registrationNumber,
       gstNumber,
       panNumber,
       website,
-      id, // 👈 MUST be last (matches $8)
+      id,
     ]);
 
     res.json({
@@ -139,13 +163,12 @@ const deleteVendor = async (req, res) => {
   }
 };
 
-
-
 export default {
   getDashboardStats,
   getVmUsageStats,
   addVendor,
   getAllVendors,
+  getVendorByCode, // 👈 NEW EXPORT
   updateVendor,
   deleteVendor,
 };

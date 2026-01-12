@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "./VmInvoicePage.css";
 
 const VmInvoicePage = () => {
   const [open, setOpen] = useState(false);
+
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendorCode, setSelectedVendorCode] = useState("");
 
   const [form, setForm] = useState({
     billToName: "",
@@ -17,19 +21,25 @@ const VmInvoicePage = () => {
 
     items: [{ desc: "", qty: 1, price: 0 }],
 
-    pan: "",
-    gstNo: "",
-    bankName: "",
-    accountNo: "",
-    ifsc: "",
-
     discount: 0,
     sgst: 9,
     cgst: 9,
   });
 
+  /* ================= LOAD VENDORS ================= */
+  useEffect(() => {
+    axios
+      .get("http://localhost:5000/vm/vendors")
+      .then((res) => setVendors(res.data))
+      .catch(() => {});
+  }, []);
+
   /* ================= CALCULATIONS ================= */
-  const subtotal = form.items.reduce((sum, i) => sum + i.qty * i.price, 0);
+  const subtotal = form.items.reduce(
+    (sum, i) => sum + i.qty * i.price,
+    0
+  );
+
   const subtotalLessDiscount = subtotal - Number(form.discount || 0);
   const sgstAmount = (subtotalLessDiscount * form.sgst) / 100;
   const cgstAmount = (subtotalLessDiscount * form.cgst) / 100;
@@ -48,6 +58,25 @@ const VmInvoicePage = () => {
       ...form,
       items: [...form.items, { desc: "", qty: 1, price: 0 }],
     });
+  };
+
+  /* ================= VENDOR SELECT ================= */
+  const handleVendorSelect = async (code) => {
+    setSelectedVendorCode(code);
+    if (!code) return;
+
+    const res = await axios.get(
+      `http://localhost:5000/vm/vendors/code/${code}`
+    );
+
+    const v = res.data;
+
+    setForm((prev) => ({
+      ...prev,
+      billToName: v.company_name || "",
+      billToAddress: v.vendor_address || "",
+      venCode: v.vendor_code || "",
+    }));
   };
 
   return (
@@ -70,38 +99,92 @@ const VmInvoicePage = () => {
             </button>
           </div>
 
+          {/* SELECT VENDOR */}
+          <Section title="Select Vendor">
+            <select
+              className="input"
+              value={selectedVendorCode}
+              onChange={(e) => handleVendorSelect(e.target.value)}
+            >
+              <option value="">-- Select Vendor --</option>
+              {vendors.map((v) => (
+                <option key={v.vendor_id} value={v.vendor_code}>
+                  {v.company_name} ({v.vendor_code})
+                </option>
+              ))}
+            </select>
+          </Section>
+
           {/* BILL TO */}
           <Section title="Bill To">
             <input
               className="input"
-              placeholder="Company Name"
-              onChange={(e) => setForm({ ...form, billToName: e.target.value })}
+              value={form.billToName}
+              readOnly
             />
             <textarea
               className="textarea"
-              placeholder="Company Address"
-              onChange={(e) =>
-                setForm({ ...form, billToAddress: e.target.value })
-              }
+              value={form.billToAddress}
+              readOnly
             />
           </Section>
 
           {/* CONTACT */}
           <Section title="Contact Person">
             <div className="grid grid-3">
-              <input className="input" placeholder="Name" />
-              <input className="input" placeholder="Email" />
-              <input className="input" placeholder="Contact No" />
+              <input
+                className="input"
+                placeholder="Name"
+                onChange={(e) =>
+                  setForm({ ...form, contactName: e.target.value })
+                }
+              />
+              <input
+                className="input"
+                placeholder="Email"
+                onChange={(e) =>
+                  setForm({ ...form, contactEmail: e.target.value })
+                }
+              />
+              <input
+                className="input"
+                placeholder="Contact No"
+                onChange={(e) =>
+                  setForm({ ...form, contactNo: e.target.value })
+                }
+              />
             </div>
           </Section>
 
-          {/* META */}
+          {/* QUOTATION DETAILS */}
           <Section title="Quotation Details">
             <div className="grid grid-4">
-              <input type="date" className="input" />
-              <input className="input" placeholder="Quotation No" />
-              <input className="input" placeholder="PO No" />
-              <input className="input" placeholder="Ven Code" />
+              <input
+                type="date"
+                className="input"
+                onChange={(e) =>
+                  setForm({ ...form, quotationDate: e.target.value })
+                }
+              />
+              <input
+                className="input"
+                placeholder="Quotation No"
+                onChange={(e) =>
+                  setForm({ ...form, quotationNo: e.target.value })
+                }
+              />
+              <input
+                className="input"
+                placeholder="PO No"
+                onChange={(e) =>
+                  setForm({ ...form, poNo: e.target.value })
+                }
+              />
+              <input
+                className="input"
+                value={form.venCode}
+                readOnly
+              />
             </div>
           </Section>
 

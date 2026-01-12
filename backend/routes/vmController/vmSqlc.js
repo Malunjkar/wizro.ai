@@ -1,6 +1,6 @@
 const insertVendorQuery = `
   INSERT INTO vendors
-  (vendor_code, company_name, business_type, industry, registration_number, gst_number, pan_number, website)
+  (vendor_code, company_name, vendor_address, industry, registration_number, gst_number, pan_number, website)
   VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
   RETURNING *;
 `;
@@ -15,7 +15,7 @@ const updateVendorQuery = `
   UPDATE vendors
   SET
     company_name = $1,
-    business_type = $2,
+    vendor_address = $2,
     industry = $3,
     registration_number = $4,
     gst_number = $5,
