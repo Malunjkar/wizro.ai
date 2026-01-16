@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./VmInvoicePage.css";
 
@@ -11,11 +11,13 @@ const VmInvoicePage = () => {
 
   const [selectedVendorCode, setSelectedVendorCode] = useState("");
   const [isInterState, setIsInterState] = useState(false);
+  const printRef = useRef();
+
   const toInputDate = (dateStr) => {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toISOString().split("T")[0]; // YYYY-MM-DD
-};
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return d.toISOString().split("T")[0]; // YYYY-MM-DD
+  };
 
 
   const [form, setForm] = useState({
@@ -45,7 +47,7 @@ const VmInvoicePage = () => {
     try {
       const res = await axios.get("http://localhost:5000/vm/quotation");
       setQuotations(res.data);
-    } catch {}
+    } catch { }
   };
 
   /* ================= DATE FORMAT ================= */
@@ -70,18 +72,18 @@ const VmInvoicePage = () => {
 
   /* ================= HANDLERS ================= */
   const updateItem = (i, key, value) => {
-  if (isViewMode) return;
+    if (isViewMode) return;
 
-  const items = [...form.items];
+    const items = [...form.items];
 
-  if (key === "desc") {
-    items[i][key] = value;           // ✅ keep string
-  } else {
-    items[i][key] = Number(value) || 0; // ✅ numeric only
-  }
+    if (key === "desc") {
+      items[i][key] = value;           // ✅ keep string
+    } else {
+      items[i][key] = Number(value) || 0; // ✅ numeric only
+    }
 
-  setForm({ ...form, items });
-};
+    setForm({ ...form, items });
+  };
 
   const addRow = () => {
     if (isViewMode) return;
@@ -112,38 +114,144 @@ const VmInvoicePage = () => {
     }));
   };
 
-  /* ================= VIEW QUOTATION (ONLY ADDITION) ================= */
- const handleViewQuotation = async (quotationId) => {
-  try {
-    const res = await axios.get(
-      `http://localhost:5000/vm/quotation/${quotationId}`
-    );
+  /* ================= PRINT HANDLER ================= */
+  const handlePrint = () => {
+    const printContents = printRef.current.cloneNode(true);
 
-    const q = res.data;
-
-    setForm({
-      billToName: q.bill_to_name,
-      billToAddress: q.bill_to_address,
-      contactName: "",
-      contactEmail: "",
-      contactNo: "",
-      quotationDate: toInputDate(q.quotation_date),
-      quotationNo: q.quotation_no,
-      poNo: q.po_no,
-      venCode: q.vendor_code,
-      items: q.items,        // ✅ MULTIPLE SERVICES
-      discount: q.discount,
+    // Convert inputs to plain text
+    printContents.querySelectorAll("input, textarea").forEach((el) => {
+      const span = document.createElement("span");
+      span.innerText = el.value || "—";
+      span.style.display = "inline-block";
+      span.style.minWidth = "80px";
+      el.replaceWith(span);
     });
 
-    setSelectedVendorCode(q.vendor_code);
-    setIsInterState(q.is_inter_state);
-    setIsViewMode(true);
-    setOpen(true);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load quotation details");
-  }
-};
+    const printWindow = window.open("", "", "width=900,height=650");
+
+    printWindow.document.write(`
+    <html>
+      <head>
+        <title>Quotation</title>
+        <style>
+          body {
+            font-family: Inter, Segoe UI, sans-serif;
+            margin: 24px;
+            color: #000;
+          }
+
+          h2, h4 {
+            margin-bottom: 12px;
+          }
+
+          /* Section spacing */
+          .section {
+            margin-bottom: 24px;
+            page-break-inside: avoid;
+          }
+
+          /* TABLE */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          td {
+            padding: 6px 4px;
+          }
+
+          tr {
+            page-break-inside: avoid;
+          }
+
+          /* CALCULATION FIX */
+          .calc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            border: 1px solid #ddd;
+            padding: 16px;
+          }
+
+          .calc-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 13px;
+          }
+
+          .calc-right {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 13px;
+            text-align: right;
+          }
+
+          .total-label {
+            font-weight: 700;
+            margin-top: 8px;
+          }
+
+          .total-value {
+            font-weight: 800;
+            font-size: 16px;
+          }
+
+          /* Hide buttons */
+          button {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${printContents.innerHTML}
+      </body>
+    </html>
+  `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+
+  /* ================= VIEW QUOTATION (ONLY ADDITION) ================= */
+  const handleViewQuotation = async (quotationId) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/vm/quotation/${quotationId}`
+      );
+
+      const q = res.data;
+
+      setForm({
+        billToName: q.bill_to_name,
+        billToAddress: q.bill_to_address,
+        contactName: "",
+        contactEmail: "",
+        contactNo: "",
+        quotationDate: toInputDate(q.quotation_date),
+        quotationNo: q.quotation_no,
+        poNo: q.po_no,
+        venCode: q.vendor_code,
+        items: q.items,        // ✅ MULTIPLE SERVICES
+        discount: q.discount,
+      });
+
+      setSelectedVendorCode(q.vendor_code);
+      setIsInterState(q.is_inter_state);
+      setIsViewMode(true);
+      setOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load quotation details");
+    }
+  };
 
 
   /* ================= SAVE QUOTATION (UNCHANGED) ================= */
@@ -246,7 +354,7 @@ const VmInvoicePage = () => {
       )}
 
       {open && (
-        <div className="card">
+        <div className="card" ref={printRef}>
           <div className="card-header">
             <h2>Quotation Form</h2>
             <button
@@ -303,42 +411,42 @@ const VmInvoicePage = () => {
           <Section title="Quotation Details">
             <div className="grid grid-4">
               <input
-  type="date"
-  className="input"
-  placeholder="Quotation Date"
-  value={form.quotationDate}
-  disabled={isViewMode}
-  onChange={(e) =>
-    setForm({ ...form, quotationDate: e.target.value })
-  }
-/>
+                type="date"
+                className="input"
+                placeholder="Quotation Date"
+                value={form.quotationDate}
+                disabled={isViewMode}
+                onChange={(e) =>
+                  setForm({ ...form, quotationDate: e.target.value })
+                }
+              />
 
-<input
-  className="input"
-  placeholder="Quotation Number"
-  value={form.quotationNo}
-  disabled={isViewMode}
-  onChange={(e) =>
-    setForm({ ...form, quotationNo: e.target.value })
-  }
-/>
+              <input
+                className="input"
+                placeholder="Quotation Number"
+                value={form.quotationNo}
+                disabled={isViewMode}
+                onChange={(e) =>
+                  setForm({ ...form, quotationNo: e.target.value })
+                }
+              />
 
-<input
-  className="input"
-  placeholder="PO Number"
-  value={form.poNo}
-  disabled={isViewMode}
-  onChange={(e) =>
-    setForm({ ...form, poNo: e.target.value })
-  }
-/>
+              <input
+                className="input"
+                placeholder="PO Number"
+                value={form.poNo}
+                disabled={isViewMode}
+                onChange={(e) =>
+                  setForm({ ...form, poNo: e.target.value })
+                }
+              />
 
-<input
-  className="input"
-  placeholder="Vendor Code"
-  value={form.venCode}
-  readOnly
-/>
+              <input
+                className="input"
+                placeholder="Vendor Code"
+                value={form.venCode}
+                readOnly
+              />
 
             </div>
           </Section>
@@ -446,7 +554,7 @@ const VmInvoicePage = () => {
               </button>
             )}
             {isViewMode && (
-              <button className="btn-primary" onClick={() => window.print()}>
+              <button className="btn-primary" onClick={handlePrint}>
                 Print
               </button>
             )}
